@@ -5,11 +5,10 @@ Guidance for AI coding agents working on this repo. This is a Django + Next.js t
 for setup/run instructions) being extended into an AI-powered weed identification tool for
 volunteer park rangers (full product vision: GitHub issue #1).
 
-**This document currently scopes the "weed identification" capture flow**
-(GitHub issue #2 and its sub-issues #8, #9, #10, #11) **and the bushland map zoning data
-source** (issues #3, #5, #6). Other planned features (ecology side menu popup UI, community
-events, IAM) are tracked in issues #4, #7 but are **out of scope** for this doc — see
-[Out of scope](#out-of-scope) below.
+**This document currently scopes only the "weed identification" capture flow**
+(GitHub issue #2 and its sub-issues #8, #9, #10, #11). Other planned features (interactive
+bushland map viewer, ecology side menu, community events, IAM) are tracked in issues #3–#7
+but are **out of scope** for this doc — see [Out of scope](#out-of-scope) below.
 
 ## Stack recap
 
@@ -40,23 +39,37 @@ events, IAM) are tracked in issues #4, #7 but are **out of scope** for this doc 
 ## Feature skeleton: weed identification flow
 
 Parent issue #2 (take a photo, verify via DL model) breaks down into four sub-issues:
-#8 (image capture/upload), #9 (forward image to WeedScan API), #10 (menu for user to
+#8 (image capture/upload), #9 (forward image for identification), #10 (menu for user to
 cross-reference results), #11 (structure the API answer into frontend items).
+
+Key finding (verified live 2026-09-04, see `session.transcript`): `weedscan.org.au`
+has **no public JSON identification API**, but the Razor handler
+`POST /Identify1?handler=Upload` does work when called server-side with a valid
+antiforgery token + cookies, and returns structured HTML (`resultBox` divs with
+species name, confidence %, `TopId`). So #9 forwards the image to that handler,
+parses the HTML to extract species names, then enriches each candidate with the
+official WeedScan profile API + Wikipedia before returning them for user
+confirmation (#10).
 
 ```mermaid
 sequenceDiagram
     participant U as User (browser)
     participant FE as Frontend (Next.js)
     participant BE as Backend (Django/DRF)
-    participant WS as WeedScan API
+    participant WS as WeedScan Identify1 handler
+    participant WP as WeedScan profiles (GitHub Pages)
+    participant WK as Wikipedia
 
     U->>FE: Capture/select photo (#8)
     FE->>BE: POST /api/weeds/identify/ (multipart image)
-    BE->>WS: Forward image (#9)
-    WS-->>BE: Raw identification response
-    BE->>BE: Parse into structured schema (#11), store WeedSighting
-    BE-->>FE: Structured JSON (species, confidence, description)
-    FE-->>U: Render result items (#11), cross-reference menu (#10)
+    BE->>WS: GET /Identify1 (token+cookies), POST ?handler=Upload (#9)
+    WS-->>BE: 302 -> Identify2a HTML resultBox + TopId + confidence
+    BE->>BE: Parse species names from HTML
+    BE->>WP: Lookup SpeciesDescription.json
+    BE->>WK: Fetch page summary
+    BE->>BE: Shape candidates (#11), store WeedSighting
+    BE-->>FE: Structured JSON candidates
+    FE-->>U: Render result items (#11), confirm/correct menu (#10)
 ```
 
 Common backend/frontend scaffolding shared by all four sub-issues:
@@ -76,93 +89,111 @@ Common backend/frontend scaffolding shared by all four sub-issues:
   are persisted to the web store, add `MEDIA_ROOT`/`MEDIA_URL` settings and an `image` field
   on `WeedSighting` (see [Open questions](#open-questions)).
 
-### #9 — Image forward to WeedScan API
+### #9 — Image identification via the Identify1 upload handler
 
-- **Backend**: `services/weedscan_client.py` — thin wrapper around the external WeedScan API
-  HTTP calls; reads `WEEDSCAN_API_KEY` / `WEEDSCAN_API_URL` from env (same dotenv pattern as
-  [server/api/settings.py](server/api/settings.py)). `identify_weed` view calls this client
-  and passes the raw response on for parsing.
-- **Backend model**: `models.py` — `WeedSighting` (image reference, species_name, confidence,
-  `raw_response` JSON as returned by WeedScan, created_at, optional user FK).
+- **Backend identifier**: `services/weedscan_identify.py` — server-side client for the
+  Razor handler, called only from the backend (never the browser — CORS/CSRF blocked).
+  Flow per the verified live test in `session.transcript` (30KB Rubber vine image →
+  `TopId=24`, 80%):
+  1. `GET https://weedscan.org.au/Identify1` with a cookie jar; extract the
+     `__RequestVerificationToken` hidden input and keep the
+     `.AspNetCore.Antiforgery.*` cookies.
+  2. `POST https://weedscan.org.au/Identify1?handler=Upload` as multipart/form-data
+     with fields `__RequestVerificationToken` and `Upload` (field name **must** be
+     `Upload`; set `Origin`/`Referer` to `https://weedscan.org.au/Identify1`); follow
+     the 302 to `Identify2a` (200 HTML, ~60KB).
+  3. Parse the HTML: `TopId` hidden input, each `div.resultBox` →
+     `<b>Common name (<i>Genus</i> <i>species</i>)</b>` + `div.colConfidence` %
+     (colour bands: `#ffc400` <30% unreliable/no record, `#ff991f` 30–50% low,
+     `#36b37e` 50–80% moderate, `#006644` >80% high; `<30%` renders
+     "Unknown plant or not included in WeedScan"). Keep `TopId`/`SuggestedId` for the
+     optional official-record step.
+- **WeedScan enrichment** (official, lookup-only): base URL
+  `https://centre-for-invasive-species-solutions.github.io/demo_json_api/` via
+  `services/weedscan_profiles.py` — `GET /api.json` (weed list, cache 24h), then
+  `GET /data/Species/{Family}/{Species}/SpeciesDescription.json` for
+  `{ Family, ScientificName, CommonNames, PlantForm, DistinguishingFeatures, Impacts,
+  Photos[] }`. Resolve `Family` from the extracted species name via `api.json`.
+- **Wikipedia enrichment**: `services/wikipedia.py` —
+  `GET https://en.wikipedia.org/api/rest_v1/page/summary/{ScientificName}` (fallback to
+  `CommonNames`), returning extract + thumbnail + page URL.
+- **Backend model**: `models.py` — `WeedSighting` (image reference, candidates JSON,
+  top `scientific_name`, confidence, `weedscan_profile` JSON, `wikipedia_url`, created_at,
+  optional user FK).
 
 ### #10 — Menu for user to cross-reference
 
-- Issue body is currently empty — treat as **open question**: confirm with the issue author
-  whether this means letting the user pick/confirm the correct species among multiple
-  candidate matches WeedScan returns (e.g. when confidence is low or several species match).
-- **Frontend** (tentative): a selection menu alongside `weed-results.tsx`, e.g.
-  `client/src/components/weed-cross-reference-menu.tsx`, listing candidate species for the
-  user to confirm.
-- **Backend** (tentative): a `confirmed_species` field on `WeedSighting` distinct from
-  WeedScan's top guess, plus an endpoint (e.g. `PATCH /api/weeds/<id>/confirm/`) to record
-  the user's selection.
+- This is the confirm/correct step: the identifier returns several candidates, so the user
+  picks the right one before a sighting is recorded.
+- **Frontend**: `client/src/components/weed-cross-reference-menu.tsx` alongside
+  `weed-results.tsx` — lists candidate species (name, confidence, thumbnail) for the user
+  to confirm.
+- **Backend**: a `confirmed_species` field on `WeedSighting` distinct from the top guess,
+  plus an endpoint (e.g. `PATCH /api/weeds/<id>/confirm/`) to record the user's selection.
 
 ### #11 — Structured answer into frontend items
 
 - **Backend**: `serializers.py` — `WeedSightingSerializer` / identification response
-  serializer that shapes WeedScan's raw response into a stable schema (species_name,
-  confidence, description, image_url) before returning it to the frontend.
+  serializer shaping each candidate into a stable schema: `scientificName`, `commonName`,
+  `confidence`, `weedScanProfile`, `wikipediaExtract`, `wikipediaUrl`, `thumbnail`.
 - **Frontend**: `client/src/components/weed-results.tsx` — renders the structured list of
-  identified species/confidence items, built with shadcn/ui components
+  candidates, built with shadcn/ui components
   (`cva` pattern, see [client/src/components/ui/button.tsx](client/src/components/ui/button.tsx)).
 - Wire capture → submit → results into a page (extend
   [client/src/pages/index.tsx](client/src/pages/index.tsx) or add a new
   `client/src/pages/identify.tsx`), following the existing hook/component integration style.
 
-## Feature skeleton: bushland map zoning data (issues #3, #5, #6)
-
-The interactive map viewer needs real bushland zone polygons to render and let users search
-/click into. WA's [Bush Forever Areas 2000 (DOP-071)](https://catalogue.data.wa.gov.au/en/dataset/bush-forever-areas-2000-dop-071/resource/20db374b-fe7b-451a-a584-3f736fe46db4)
-dataset (published via the SLIP WA `Property_and_Planning` ArcGIS `MapServer`) is a candidate
-source for these zones. It's exposed as WMS (image tiles), WFS (vector `GetFeature`, GML/GeoJSON),
-and an ArcGIS REST Feature Service (JSON `query` endpoint) — see the dataset's **Resources**
-list for each endpoint URL.
-
-A few implementation options, roughly in order of increasing effort/robustness:
-
-1. **Direct frontend fetch + Leaflet** (simplest, good for a #5 prototype): call the ArcGIS
-   Feature Service `query` endpoint with `f=geojson` directly from
-   `client/src/components/bushland-map.tsx` (e.g. via `react-leaflet` + a `GeoJSON` layer),
-   styling polygons by zone type and wiring `onEachFeature` clicks to open the ecology side
-   menu (#7, out of scope here but the click hook belongs in this component). Downside: relies
-   on CORS support and availability of the WA gov server at request time, and repeats the same
-   query for every visitor.
-2. **Backend proxy endpoint, no persistence** (middle ground for #6): a `views.py` endpoint in
-   a new `server/api/bushland/` app (mirroring `healthcheck`) that server-side proxies the
-   WFS/ArcGIS `query` request, forwards it as GeoJSON, and adds HTTP caching headers. Avoids
-   CORS issues and hides the upstream URL, but still depends on the WA service being reachable.
-3. **Backend sync + persistence** (recommended if #3's "search specific bushland" needs to
-   filter/join against local data, e.g. ecology or weed sightings per zone): a management
-   command (`server/api/bushland/management/commands/sync_bushland_areas.py`) that periodically
-   fetches the WFS/ArcGIS response and upserts each polygon into a `BushlandArea` model —
-   use GeoDjango's `PolygonField`/`MultiPolygonField` if PostGIS is enabled on the Postgres
-   instance, otherwise store the raw GeoJSON geometry in a `JSONField` and do bounding-box
-   filtering in Python. `BushlandArea` can then FK to `WeedSighting` and future ecology models.
-   The dataset was last updated 2019, so a daily/weekly sync (not live polling) is sufficient.
-
-Regardless of option chosen, keep the raw upstream response fields (name, reserve number,
-zone category) alongside anything the app adds, so future ecology/events features (#4, #7)
-can reference the same zone records.
-
 ## Open questions
 
-- **WeedScan API contract** (auth method, request/response shape) is not yet known — fill in
-  `weedscan_client.py` once API docs are available.
+- **Licensed WeedScan endpoint**: contact `weeds@invasives.com.au` / CSIRO / Centre for
+  Invasive Species Solutions about a WeedScan 2.0 model endpoint (`test.weedscan.org.au`
+  advertises 950 plants / 900k images but publishes no API). Until then the Identify1
+  handler works but is fragile HTML scraping — re-fetch `GET /Identify1` on 403/400
+  (expired token), and expect breakage if the Razor page changes.
 - **Image persistence**: whether uploaded photos are stored (Postgres path + object storage)
   or only forwarded transiently — decide before finalizing `models.py`.
-- **Map viewer tech** (Leaflet vs Mapbox, etc.) and which of the three Bush Forever Areas
-  endpoints (WMS/WFS/ArcGIS Feature Service) to standardise on are left open — see
-  [Feature skeleton: bushland map zoning data](#feature-skeleton-bushland-map-zoning-data-issues-3-5-6).
-- **Bush Forever Areas licence** is "Custom (Active Acceptance)" — confirm the acceptance
-  terms are satisfied before relying on this dataset in production.
+- **Map viewer tech**: default to Leaflet (`react-leaflet`) unless vector-tile styling
+  justifies MapLibre; see [Future work](#future-work-bushland-map-rendering-issues-56).
 - **Cross-reference menu (#10)** has no issue description yet — the UX described above is a
   guess and should be confirmed before implementing.
+
+## Future work: bushland map rendering (issues #5, #6)
+
+Public dataset: [Bush Forever Areas 2000 (DPLH-019)](https://catalogue.data.wa.gov.au/en/dataset/bush-forever-areas-2000-dop-071/resource/20db374b-fe7b-451a-a584-3f736fe46db4)
+(DataWA, SLIP Public Property and Planning Service). Exposes WMS, WFS, and ArcGIS
+Map/Feature Server endpoints, e.g. WMS
+`https://public-services.slip.wa.gov.au/public/services/SLIP_Public_Services/Property_and_Planning/MapServer/WMSServer`.
+Licence is Custom (Active Acceptance), open data — retain attribution. Note it is a year-2000
+snapshot; the current MRS Bush Forever overlay is authoritative for present-day boundaries.
+
+Shared scaffold (all options): `client/src/components/bushland-map.tsx` (`MapContainer`
+centred on Perth `[-31.953, 115.857]` over an OSM base layer), data via
+`client/src/hooks/bushlands.ts` (React Query), polygon click selects an area for the ecology
+side menu (#7) and search (#3). Get the exact WMS layer name / WFS typeName from the
+service `GetCapabilities` before coding.
+
+- **Option A — WMS raster overlay (fastest spike, frontend-only)**. Add `leaflet` +
+  `react-leaflet`; render `WMSTileLayer` (`url`, `layers`, `format="image/png"`,
+  `transparent`) over the base map; clicks via WMS `GetFeatureInfo`. No backend change.
+  Pro: days of work, always fresh, no ETL. Con: raster only, limited styling, depends on
+  SLIP uptime/CORS, no offline or spatial queries.
+- **Option B — WFS / ArcGIS FeatureServer vector (interactive, still frontend-only)**.
+  Fetch GeoJSON (`WFS GetFeature outputFormat=geojson` with bbox paging, or ArcGIS
+  `.../query?where=1=1&outFields=*&f=geojson`), render as Leaflet `GeoJSON` layer with
+  per-feature style and `onEachFeature` click handlers. Cache in React Query; simplify
+  geometries for large responses. Pro: true vector interactivity/filtering. Con: large
+  payloads, still externally dependent.
+- **Option C — backend-cached PostGIS (production-ready)**. New `server/api/bushlands/`
+  app with a `BushlandArea` model (`MultiPolygonField`, site id/name, `source_updated_at`)
+  plus `import_bushforever` management command for the ETL snapshot; serve simplified
+  `GET /api/bushlands/?bbox=` + detail endpoints from DRF. Requires `postgis` db image,
+  `django.contrib.gis`, and GDAL. Pro: fast, offline-resilient, enables point-in-polygon
+  joins (weed sightings per area). Con: heaviest setup and ETL maintenance.
 
 ## Out of scope
 
 Not covered by this doc — see the linked issues for context when work begins on them:
 
 - #1 — MVP umbrella (full product vision)
-- #4 — community events (IAM dependent)
-- #7 — ecology side menu popup UI (Figma dependent; only the click hook is sketched above)
-- Full UI/UX of the map viewer itself (#5, #6) beyond the data-source options above
+- #3, #4, #5, #6, #7 — interactive bushland map viewer, ecology side menu, community events
+  (Figma/IAM dependent)
