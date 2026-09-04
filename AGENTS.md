@@ -60,9 +60,9 @@ sequenceDiagram
     participant WP as WeedScan profiles (GitHub Pages)
     participant WK as Wikipedia
 
-    U->>FE: Capture/select photo (#8)
+    U->>FE: Capture/select photo from camera/file (#8)
     FE->>BE: POST /api/weeds/identify/ (multipart image)
-    BE->>WS: GET /Identify1 (token+cookies), POST ?handler=Upload (#9)
+    BE->>WS: GET /Identify1 (token+cookies), POST ?handler=Upload with same image bytes (#9)
     WS-->>BE: 302 -> Identify2a HTML resultBox + TopId + confidence
     BE->>BE: Parse species names from HTML
     BE->>WP: Lookup SpeciesDescription.json
@@ -84,10 +84,12 @@ Common backend/frontend scaffolding shared by all four sub-issues:
 ### #8 — User image capture and upload
 
 - **Frontend**: `client/src/components/weed-capture.tsx` — camera/file input widget for
-  taking or selecting a photo; hands the file to a `useUploadWeedImage()` mutation.
-- **Backend**: `views.py` `identify_weed` view accepts the multipart image upload. If images
-  are persisted to the web store, add `MEDIA_ROOT`/`MEDIA_URL` settings and an `image` field
-  on `WeedSighting` (see [Open questions](#open-questions)).
+  taking or selecting a photo; hands the `File` to a `useUploadWeedImage()` mutation that
+  POSTs it as multipart `image` to `/api/weeds/identify/`.
+- **Backend**: `views.py` `identify_weed` view accepts the multipart image upload and passes
+  the received image bytes straight through to the Identify1 handler in #9 (same file, no
+  re-encoding). If images are persisted to the web store, add `MEDIA_ROOT`/`MEDIA_URL`
+  settings and an `image` field on `WeedSighting` (see [Open questions](#open-questions)).
 
 ### #9 — Image identification via the Identify1 upload handler
 
@@ -100,8 +102,9 @@ Common backend/frontend scaffolding shared by all four sub-issues:
      `.AspNetCore.Antiforgery.*` cookies.
   2. `POST https://weedscan.org.au/Identify1?handler=Upload` as multipart/form-data
      with fields `__RequestVerificationToken` and `Upload` (field name **must** be
-     `Upload`; set `Origin`/`Referer` to `https://weedscan.org.au/Identify1`); follow
-     the 302 to `Identify2a` (200 HTML, ~60KB).
+     `Upload`; value is the exact image bytes received from the user's camera/file
+     upload in #8; set `Origin`/`Referer` to `https://weedscan.org.au/Identify1`);
+     follow the 302 to `Identify2a` (200 HTML, ~60KB).
   3. Parse the HTML: `TopId` hidden input, each `div.resultBox` →
      `<b>Common name (<i>Genus</i> <i>species</i>)</b>` + `div.colConfidence` %
      (colour bands: `#ffc400` <30% unreliable/no record, `#ff991f` 30–50% low,
