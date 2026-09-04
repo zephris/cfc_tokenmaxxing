@@ -6,9 +6,15 @@ for setup/run instructions) being extended into an AI-powered weed identificatio
 volunteer park rangers (full product vision: GitHub issue #1).
 
 **This document currently scopes only the "weed identification" capture flow**
-(GitHub issue #2 and its sub-issues #8, #9, #10, #11). Other planned features (interactive
-bushland map viewer, ecology side menu, community events, IAM) are tracked in issues #3–#7
-but are **out of scope** for this doc — see [Out of scope](#out-of-scope) below.
+(GitHub issue #2 and its sub-issues #8, #9, #10, #11) — worked on first. Other planned
+features (interactive bushland map viewer, ecology side menu, community events, IAM) are
+tracked in issues #3–#7 but are **out of scope** for this doc — see [Out of scope](#out-of-scope)
+below.
+
+The web app targets field use by volunteer rangers, so the frontend will also run as a
+progressive web app (installable, works from the device camera in the field). PWA
+scaffolding (manifest, icons, service worker) is shared infra; the weed-ID flow is the
+first feature built on top of it.
 
 ## Stack recap
 
@@ -83,13 +89,17 @@ Common backend/frontend scaffolding shared by all four sub-issues:
 
 ### #8 — User image capture and upload
 
-- **Frontend**: `client/src/components/weed-capture.tsx` — camera/file input widget for
-  taking or selecting a photo; hands the `File` to a `useUploadWeedImage()` mutation that
-  POSTs it as multipart `image` to `/api/weeds/identify/`.
-- **Backend**: `views.py` `identify_weed` view accepts the multipart image upload and passes
-  the received image bytes straight through to the Identify1 handler in #9 (same file, no
-  re-encoding). If images are persisted to the web store, add `MEDIA_ROOT`/`MEDIA_URL`
-  settings and an `image` field on `WeedSighting` (see [Open questions](#open-questions)).
+- **Frontend**: `client/src/components/weed-capture.tsx` — offers both paths: a
+  `capture="environment"` camera input (opens the rear camera on mobile/PWA) and a plain
+  file picker for existing photos; either way hands the resulting single `File` to a
+  `useUploadWeedImage()` mutation that POSTs it as multipart `image` to
+  `/api/weeds/identify/`. Single image only — no multi-select (`multiple` unset), and a
+  new capture replaces any pending one.
+- **Backend**: `views.py` `identify_weed` view accepts exactly one multipart image upload
+  (reject with 400 if zero or more than one file) and passes the received image bytes
+  straight through to the Identify1 handler in #9 (same file, no re-encoding). If images
+  are persisted to the web store, add `MEDIA_ROOT`/`MEDIA_URL` settings and an `image`
+  field on `WeedSighting` (see [Open questions](#open-questions)).
 
 ### #9 — Image identification via the Identify1 upload handler
 
