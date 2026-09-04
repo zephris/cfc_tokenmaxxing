@@ -1,5 +1,7 @@
 # local development data
 data/
+# weed identification test images (local only, see data/weed-test-images/manifest.json)
+data/weed-test-images/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -53,6 +55,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+session.transcript
 
 # Translations
 *.mo
