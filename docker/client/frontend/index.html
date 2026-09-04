@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Virens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <!-- About / onboarding -->
+    <section id="about" class="screen about-screen active-screen" aria-label="About Virens">
+      <div class="about-sheet">
+        <div class="about-brand">
+          <img src="https://www.figma.com/api/mcp/asset/9ef3afcf-4bad-47e6-b128-67c5275fb311.svg" alt="Virens logo">
+          <h1>virens</h1>
+          <p>let the good greens flourish</p>
+        </div>
+
+        <div class="about-overview">
+          <h2>Better bushland, together</h2>
+          <p>Virens helps local communities recognise invasive weeds and care for the places that matter.</p>
+        </div>
+
+        <div class="about-features">
+          <article class="about-feature">
+            <div class="about-feature-icon green"><img src="https://www.figma.com/api/mcp/asset/63ee7267-e890-45fa-8fba-2347c03014c1.svg" alt=""></div>
+            <div><strong>Identify invasive weeds</strong><span>Photograph a plant and get clear identification cues in seconds.</span></div>
+          </article>
+          <article class="about-feature">
+            <div class="about-feature-icon green"><img src="https://www.figma.com/api/mcp/asset/c9155e5a-9245-455f-81c3-c1d7bbca0a18.svg" alt=""></div>
+            <div><strong>Explore local ecology</strong><span>Learn about nearby bushland, native habitats and priority species.</span></div>
+          </article>
+          <article class="about-feature">
+            <div class="about-feature-icon yellow"><img src="https://www.figma.com/api/mcp/asset/97c512e1-025c-4863-a1ba-7c9139ee0b24.svg" alt=""></div>
+            <div><strong>Take action in the field</strong><span>Report sightings, discover events and support restoration teams.</span></div>
+          </article>
+        </div>
+
+        <div class="about-community-note">
+          <img src="https://www.figma.com/api/mcp/asset/f73e7a36-3b86-46b3-a408-393fa3421960.svg" alt="">
+          <strong>Built for volunteers, rangers and everyone who cares for Country.</strong>
+        </div>
+
+        <div class="about-app-details">
+          <span>Virens · Version 1.0.0</span>
+          <strong>Privacy policy · Terms of use · Contact</strong>
+        </div>
+
+        <button class="about-next-button" type="button" data-action="show-landing">Next</button>
+      </div>
+    </section>
+
+    <!-- Landing / sign in -->
+    <section id="login" class="screen login-screen" aria-label="Virens sign in">
+      <img class="login-decoration login-leaf-decoration" src="https://www.figma.com/api/mcp/asset/815d56a5-9979-460e-9f68-59344cc51421.svg" alt="">
+      <img class="login-decoration login-soft-shape" src="https://www.figma.com/api/mcp/asset/7ab6bbda-fce4-4d20-bc0b-1f8ed85e2de2.svg" alt="">
+      <img class="login-decoration login-glow" src="https://www.figma.com/api/mcp/asset/bd86d1da-b136-46cb-b98d-e156ee0887be.svg" alt="">
+
+      <div class="brand-lockup landing-brand">
+        <div class="logo-mark" aria-hidden="true">
+          <img class="logo-leaf logo-leaf-a" src="https://www.figma.com/api/mcp/asset/9729be61-e47b-4b59-98b1-8235b20fb1f1.svg" alt="">
+          <img class="logo-leaf logo-leaf-b" src="https://www.figma.com/api/mcp/asset/846142ee-6f9e-4628-b251-fc913233949a.svg" alt="">
+          <img class="logo-leaf logo-leaf-c" src="https://www.figma.com/api/mcp/asset/7c872fde-fe31-46b7-bb97-9966635cccd5.svg" alt="">
+          <img class="logo-wheat" src="https://www.figma.com/api/mcp/asset/b9d97389-e6e4-4940-9209-6a0475056527.svg" alt="">
+        </div>
+        <h1>virens</h1>
+        <p>let the good greens flourish</p>
+      </div>
+
+      <div class="signin-panel">
+        <div class="welcome-copy landing-welcome-copy">
+          <h2>Welcome to Virens</h2>
+          <p>Sign in to identify invasive weeds, explore local bushland and join your community in the field.</p>
+        </div>
+        <div class="signin-actions">
+          <button class="pill-btn primary" type="button" data-action="show-email-login">Continue with email</button>
+        </div>
+        <p class="terms">By continuing, you agree to our Terms and Privacy Policy.</p>
+      </div>
+    </section>
+
+    <!-- NEW: email login screen -->
+    <section id="email-login" class="screen email-login-screen" aria-label="Email login">
+      <img class="email-decoration email-soft-shape" src="https://www.figma.com/api/mcp/asset/08564490-40ab-4529-ae77-fc2b7af397ea.svg" alt="">
+      <img class="email-decoration email-glow" src="https://www.figma.com/api/mcp/asset/b7d762cb-52c1-4c9e-8add-73d155110b98.svg" alt="">
+
+      <div class="brand-lockup email-brand">
+        <img class="email-brand-icon" src="https://www.figma.com/api/mcp/asset/d544975f-68ff-4dfb-94ff-11369be3cc36.svg" alt="Virens logo">
+        <h1>virens</h1>
+        <p>let the good greens flourish</p>
+      </div>
+
+      <div class="email-login-panel">
+        <div class="email-login-content">
+          <div class="email-welcome-copy">
+            <h2>Welcome</h2>
+            <p>Sign up to continue identifying weeds and joining local field events.</p>
+          </div>
+
+          <label class="field-group">
+            <span class="field-label">Email</span>
+            <span class="text-field">
+              <img src="https://www.figma.com/api/mcp/asset/87053442-1ae2-444a-a300-b34f135fe4b0.svg" alt="">
+              <input type="email" value="jordan.ranger@example.com" aria-label="Email">
+            </span>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Password</span>
+            <span class="text-field">
+              <img src="https://www.figma.com/api/mcp/asset/3c19a4f1-bee2-43eb-822c-42cf4e4a2ab6.svg" alt="">
+              <input id="password-input" type="password" value="password123" aria-label="Password">
+              <button class="password-toggle" type="button" data-action="toggle-password" aria-label="Show or hide password">
+                <img src="https://www.figma.com/api/mcp/asset/5c13ac15-0b15-4add-aa50-b434e5222b96.svg" alt="">
+              </button>
+            </span>
+          </label>
+
+          <button class="forgot-password" type="button">Forgot password?</button>
+          <button class="pill-btn primary new-green-button" type="button" data-action="enter-app">Sign Up</button>
+        </div>
+
+        <p class="account-prompt">New to Virens?&nbsp;&nbsp; Create an account</p>
+      </div>
+    </section>
+
+    <!-- Identify -->
+    <section id="identify" class="screen app-screen" aria-label="Identify a weed">
+      <header class="top-header">
+        <div><h2>Identify a weed</h2><p>AI field assistant</p></div>
+        <div class="avatar">JR</div>
+      </header>
+
+      <div class="screen-content identify-content">
+        <div class="camera-preview">
+          <img class="camera-image" src="https://www.figma.com/api/mcp/asset/43dbcaa0-5f6a-4794-a28b-d0778a5aa94f.png" alt="Bridal creeper in the camera preview">
+          <div class="camera-top">
+            <span class="chip yellow">LIVE</span>
+            <button class="camera-flash" type="button" aria-label="Toggle flashlight">
+              <img src="https://www.figma.com/api/mcp/asset/0d72ecc8-eb66-42c4-9ac0-0ed92d2c3bc2.svg" alt="">
+            </button>
+          </div>
+          <div class="focus-guide"></div>
+          <div class="camera-hint">Center the leaves and flowers in frame</div>
+        </div>
+
+        <div class="model-status">
+          <div class="ai-mark"><img src="https://www.figma.com/api/mcp/asset/90825ded-29c4-494b-9aa7-129f965f1271.svg" alt=""></div>
+          <div class="prediction"><strong>Bridal creeper</strong><small>92% match · Asparagus asparagoides</small></div>
+          <span class="chip yellow">High</span>
+        </div>
+
+        <div class="button-row">
+          <button class="pill-btn outline" type="button" data-action="upload-image">Upload Image</button>
+          <button class="pill-btn primary" type="button" data-action="show-species">Done</button>
+        </div>
+        <input id="plant-image-input" class="visually-hidden" type="file" accept="image/*">
+      </div>
+      <nav class="bottom-nav" aria-label="Main navigation"></nav>
+    </section>
+
+    <!-- Species result -->
+    <section id="species" class="screen species-screen" aria-label="Identification result">
+      <header class="detail-header">
+        <button class="detail-back-button" type="button" data-action="back-identify" aria-label="Back to identify">
+          <img src="https://www.figma.com/api/mcp/asset/f2bdd74e-a16e-4dce-b5d4-3d217d319fa7.svg" alt="">
+        </button>
+        <strong>Identification result</strong>
+      </header>
+
+      <div class="species-sheet">
+        <div class="species-heading">
+          <span class="overview-badge">
+            <img src="https://www.figma.com/api/mcp/asset/9f3987ba-38e3-4c77-823a-57f09845709f.svg" alt="">
+            <span>GOOGLE AI OVERVIEW</span>
+          </span>
+          <span class="chip yellow">92% match</span>
+          <h2>Bridal creeper</h2>
+          <em>Asparagus asparagoides</em>
+        </div>
+
+        <div class="priority-alert">
+          <img src="https://www.figma.com/api/mcp/asset/b260ec08-f29f-4500-8ae3-d2858ade9a61.svg" alt="">
+          <strong>High-priority invasive weed in Western Australia</strong>
+        </div>
+
+        <p class="overview-text">Bridal creeper is a climbing perennial with glossy, heart-shaped leaves and small white flowers. It forms dense underground mats that smother native plants and is most visible through winter and spring.</p>
+
+        <section class="look-for">
+          <h3>Look for</h3>
+          <div>
+            <span class="chip grey">White star flowers</span>
+            <span class="chip grey">Glossy leaves</span>
+            <span class="chip grey">Red berries</span>
+          </div>
+        </section>
+
+        <section class="compare">
+          <div class="section-heading stacked"><h3>Compare your sighting</h3><span>3 reference images</span></div>
+          <figure><img src="https://www.figma.com/api/mcp/asset/6958be2e-3683-4a49-803b-56a09b10a125.png" alt="Flowers"><figcaption>Flowers</figcaption></figure>
+          <figure><img src="https://www.figma.com/api/mcp/asset/a7614864-3557-4059-b0be-5218e290a403.png" alt="Leaves"><figcaption>Leaves</figcaption></figure>
+          <figure><img src="https://www.figma.com/api/mcp/asset/e0053c6a-41c7-45ef-9ec6-1d8044a3e231.png" alt="Growth habit"><figcaption>Growth habit</figcaption></figure>
+        </section>
+
+        <div class="species-actions">
+          <button class="pill-btn outline" type="button" data-action="identification-failed">Not a match</button>
+          <button class="pill-btn primary" id="confirm-species-button" type="button" data-action="confirm-species">Confirm species</button>
+          <button class="pill-btn primary report-button" type="button" data-action="report-sighting">Verify &amp; report</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Identification failed -->
+    <section id="identification-failed" class="screen result-flow-screen" aria-label="Identification failed">
+      <header class="flow-header">
+        <button class="flow-back-button" type="button" data-action="back-species" aria-label="Back to identification result">
+          <img src="https://www.figma.com/api/mcp/asset/feb7be26-6452-4bb6-912d-9556da98c678.svg" alt="">
+        </button>
+        <strong>Identification result</strong>
+        <div class="avatar">JR</div>
+      </header>
+
+      <div class="flow-sheet failure-sheet">
+        <div class="failure-content">
+          <div class="failure-message">
+            <div class="unknown-plant-mark"><img src="https://www.figma.com/api/mcp/asset/5535dd74-0b5f-4e13-9b72-b53349962875.svg" alt=""></div>
+            <div class="ai-inline-badge">
+              <img src="https://www.figma.com/api/mcp/asset/c06a2a39-54ae-4523-8bb5-3c8cc3b146fa.svg" alt="">
+              <span>GOOGLE AI OVERVIEW</span>
+            </div>
+            <h2>We couldn’t identify this plant</h2>
+            <p>There wasn’t enough detail for a reliable match. Try another photo and we’ll take a fresh look.</p>
+          </div>
+
+          <div class="photo-guidance">
+            <h3>For a clearer identification</h3>
+            <div class="photo-tip">
+              <div class="tip-icon"><img src="https://www.figma.com/api/mcp/asset/cbd2f4e7-99dc-4212-9d15-1f5fd6c151d3.svg" alt=""></div>
+              <div><strong>Use natural light</strong><span>Avoid deep shade, glare and heavy shadows.</span></div>
+            </div>
+            <div class="photo-tip">
+              <div class="tip-icon"><img src="https://www.figma.com/api/mcp/asset/f7761a12-b11c-431c-9cd6-2fb38a8814f7.svg" alt=""></div>
+              <div><strong>Move closer</strong><span>Keep leaves, flowers or fruit sharp and in frame.</span></div>
+            </div>
+            <div class="photo-tip">
+              <div class="tip-icon"><img src="https://www.figma.com/api/mcp/asset/2a421e82-7e69-47a0-a7bf-044af6c82544.svg" alt=""></div>
+              <div><strong>Try another angle</strong><span>Include the stem and how the plant is growing.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="failure-actions">
+          <button class="pill-btn primary icon-pill" type="button" data-action="retake-photo">
+            <img src="https://www.figma.com/api/mcp/asset/90d47060-ebd1-4825-8c72-66857474e9fe.svg" alt="">
+            <span>Retake photo</span>
+          </button>
+          <button class="pill-btn outline" type="button" data-action="choose-library">Choose from library</button>
+          <p>Still unsure? Save the sighting to review with a ranger.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sighting saved / report sighting -->
+    <section id="sighting-saved" class="screen result-flow-screen" aria-label="Report sighting">
+      <header class="flow-header">
+        <button class="flow-back-button" type="button" data-action="back-species" aria-label="Back to identification result">
+          <img src="https://www.figma.com/api/mcp/asset/b5f599ea-4029-42ce-b075-408552c8db7e.svg" alt="">
+        </button>
+        <strong>Report sighting</strong>
+        <div class="avatar">JR</div>
+      </header>
+
+      <div class="flow-sheet sighting-sheet">
+        <div class="sighting-content">
+          <div class="success-message">
+            <div class="success-mark"><img src="https://www.figma.com/api/mcp/asset/319f5b2a-800b-4966-bb87-03f4e002831e.svg" alt=""></div>
+            <h2>Thank you!</h2>
+            <p>Your scan was successful. Add the bushland area so local rangers can follow up.</p>
+          </div>
+
+          <div class="captured-photo">
+            <div class="photo-heading"><h3>Your sighting</h3><span class="chip grey">SCAN COMPLETE</span></div>
+            <img id="reported-plant-image" src="https://www.figma.com/api/mcp/asset/41d2db74-57df-465a-9080-90c80f066143.png" alt="Your captured sighting">
+          </div>
+
+          <div class="report-field">
+            <h3>Ticket ID</h3>
+            <div class="report-input static-report-input">
+              <img src="https://www.figma.com/api/mcp/asset/6c561589-c321-4a32-b711-fbda2932dfbb.svg" alt="">
+              <strong>#RS-10482</strong>
+            </div>
+            <small>Keep this reference for your report.</small>
+          </div>
+
+          <div class="report-field">
+            <h3>Bushland location or area</h3>
+            <button class="report-input location-select-button" type="button" data-action="choose-location">
+              <img src="https://www.figma.com/api/mcp/asset/31e6e28d-8653-45d6-9cce-c434fd53433b.svg" alt="">
+              <span id="selected-location-label">Select a location</span>
+              <img class="field-chevron" src="https://www.figma.com/api/mcp/asset/1ed41174-d776-4890-b3e5-fae649d1bcda.svg" alt="">
+            </button>
+            <small>Enter a park, reserve, trail or nearby suburb.</small>
+          </div>
+        </div>
+
+        <button class="pill-btn primary full-flow-action" type="button" data-action="finish-report">Done</button>
+      </div>
+    </section>
+
+    <!-- Choose bushland location -->
+    <section id="choose-location" class="screen result-flow-screen" aria-label="Choose bushland location">
+      <header class="flow-header">
+        <button class="flow-back-button" type="button" data-action="back-report" aria-label="Back to report sighting">
+          <img src="https://www.figma.com/api/mcp/asset/a95fa267-9a27-467c-a755-a4998e4e941b.svg" alt="">
+        </button>
+        <strong>Report sighting</strong>
+        <div class="avatar">JR</div>
+      </header>
+
+      <div class="flow-sheet location-sheet">
+        <div class="success-message compact-success-message">
+          <div class="success-mark plain-success-mark"><img src="https://www.figma.com/api/mcp/asset/501bcd0f-caff-4f40-84ed-8f24f5e2d440.svg" alt=""></div>
+          <h2>Thank you!</h2>
+          <p>Your scan was successful. Add the bushland area so local rangers can follow up.</p>
+        </div>
+
+        <div class="location-field-expanded">
+          <h3>Bushland location or area</h3>
+          <button class="expanded-location-control" type="button" data-action="toggle-location-menu">
+            <img src="https://www.figma.com/api/mcp/asset/cfcfa232-b9fc-458e-8e9a-debeb4b177f6.svg" alt="">
+            <span id="location-control-label">Select a location</span>
+            <img class="collapse-icon" src="https://www.figma.com/api/mcp/asset/ddd53c20-943e-44f2-933b-a7eff3e52621.svg" alt="">
+          </button>
+
+          <div id="location-menu" class="location-menu">
+            <label class="location-search">
+              <img src="https://www.figma.com/api/mcp/asset/d85c63a7-5bc5-4671-bcee-8b44e6832443.svg" alt="">
+              <input id="location-search-input" type="search" placeholder="Search park, reserve or suburb">
+            </label>
+            <div class="nearby-label">Nearby locations</div>
+
+            <button class="location-option selected" type="button" data-location="Bold Park" data-location-detail="City Beach · 1.2 km away">
+              <img src="https://www.figma.com/api/mcp/asset/42dcffb3-b0fd-4ff0-bf5b-4eb0b72f1c2e.svg" alt="">
+              <span><strong>Bold Park</strong><small>City Beach · 1.2 km away</small></span>
+              <img class="option-check" src="https://www.figma.com/api/mcp/asset/6225f1d1-9a03-4e2d-ac8b-51e709877eb2.svg" alt="">
+            </button>
+
+            <button class="location-option" type="button" data-location="Perry Lakes Reserve" data-location-detail="Floreat · 2.8 km away">
+              <img src="https://www.figma.com/api/mcp/asset/42dcffb3-b0fd-4ff0-bf5b-4eb0b72f1c2e.svg" alt="">
+              <span><strong>Perry Lakes Reserve</strong><small>Floreat · 2.8 km away</small></span>
+              <img class="option-check" src="https://www.figma.com/api/mcp/asset/6225f1d1-9a03-4e2d-ac8b-51e709877eb2.svg" alt="">
+            </button>
+
+            <button class="location-option" type="button" data-location="Herdsman Lake Regional Park" data-location-detail="Wembley · 4.6 km away">
+              <img src="https://www.figma.com/api/mcp/asset/42dcffb3-b0fd-4ff0-bf5b-4eb0b72f1c2e.svg" alt="">
+              <span><strong>Herdsman Lake Regional Park</strong><small>Wembley · 4.6 km away</small></span>
+              <img class="option-check" src="https://www.figma.com/api/mcp/asset/6225f1d1-9a03-4e2d-ac8b-51e709877eb2.svg" alt="">
+            </button>
+          </div>
+
+          <small>Choose the closest area to help local rangers follow up.</small>
+        </div>
+
+        <button class="pill-btn primary full-flow-action" type="button" data-action="confirm-location">Continue</button>
+      </div>
+    </section>
+
+    <!-- Explore -->
+    <section id="explore" class="screen app-screen" aria-label="Explore bushland">
+      <header class="top-header">
+        <div><h2>Explore bushland</h2><p>Know the land before you patrol</p></div>
+        <div class="avatar">JR</div>
+      </header>
+
+      <div class="screen-content explore-content">
+        <label class="search-bar">
+          <img src="https://www.figma.com/api/mcp/asset/652489af-27ef-4610-aa8a-cccd38009e4b.svg" alt="">
+          <input placeholder="Search bushland areas" aria-label="Search bushland areas">
+        </label>
+
+        <button class="area-card area-card-button" type="button" data-action="show-ecology-profile" aria-label="Open Bold Park bushland ecology profile">
+          <img class="area-image" src="https://www.figma.com/api/mcp/asset/1ca127d9-bba1-4e19-acdc-3ed8e0f8d2f0.png" alt="Bold Park landscape">
+          <div class="area-details">
+            <div class="area-heading">
+              <div><h3>Bold Park</h3><p>Bold Park, City Beach, Perth WA · 437 ha</p></div>
+              <span class="chip yellow">Near you</span>
+            </div>
+            <div class="tag-row"><span class="chip grey">Banksia woodland</span><span class="chip grey">Coastal heath</span></div>
+          </div>
+        </button>
+
+        <section class="sightings">
+          <div class="section-heading"><h3>Reported invasive species</h3><span>29 total</span></div>
+          <div class="species-row"><img src="https://www.figma.com/api/mcp/asset/e30fd102-6a68-457e-b36f-bab7b9cbc3c7.png" alt="Bridal creeper"><div><strong>Bridal creeper</strong><small>18 sightings · Updated this week</small></div><span class="chip pale">High priority</span></div>
+          <div class="species-row"><img src="https://www.figma.com/api/mcp/asset/b2ce2aa7-4fbd-4dd5-b703-6fa8580672e1.png" alt="Blackberry"><div><strong>Blackberry</strong><small>7 sightings · Updated this week</small></div><span class="chip grey">Monitor</span></div>
+          <div class="species-row"><img src="https://www.figma.com/api/mcp/asset/f105694a-faf5-4d64-bb7a-6ed2f8bf0a53.png" alt="Boneseed"><div><strong>Boneseed</strong><small>4 sightings · Updated this week</small></div><span class="chip grey">Contained</span></div>
+        </section>
+
+        <button class="resource-link" type="button" data-action="show-ecology-profile">
+          <img src="https://www.figma.com/api/mcp/asset/c503c286-9153-418f-9980-1fd832d7459a.svg" alt="">
+          <span>View ecology profile &amp; scholarly resources</span>
+          <img src="https://www.figma.com/api/mcp/asset/41e82087-7a55-4d5e-8930-b20a7d8faf69.svg" alt="">
+        </button>
+      </div>
+      <nav class="bottom-nav" aria-label="Main navigation"></nav>
+    </section>
+
+    <!-- Bushland ecology profile -->
+    <section id="ecology-profile" class="screen ecology-profile-screen" aria-label="Bushland Ecology Profile">
+      <header class="ecology-header">
+        <button class="ecology-back" type="button" data-action="back-explore" aria-label="Back to Explore">
+          <img src="https://www.figma.com/api/mcp/asset/800124e6-75cb-416d-9f23-a7713c986437.svg" alt="">
+        </button>
+        <h2>Bushland Ecology Profile</h2>
+      </header>
+
+      <div class="ecology-scroll">
+        <article class="ecology-card">
+          <div class="ecology-card-heading"><h3>Site Description</h3></div>
+          <p>Bold Park is a significant bushland reserve in Perth, Western Australia, protecting Banksia woodland, coastal heath and native plant communities across the Swan Coastal Plain.</p>
+        </article>
+
+        <article class="ecology-card">
+          <div class="ecology-card-heading"><h3>Area &amp; Location</h3></div>
+          <div class="ecology-area-row">
+            <div class="area-stat"><strong>437 ha</strong><span>Total Area</span></div>
+            <p>City Beach, Perth WA — located near the coast and bounded by Perry Lakes and the surrounding urban area.</p>
+          </div>
+          <div class="ecology-map-card">
+            <img src="https://www.figma.com/api/mcp/asset/2273d976-ec0b-4ae3-a4ee-03c590e0beaa.png" alt="Map showing Bold Park">
+            <span class="ecology-map-pin"><img src="https://www.figma.com/api/mcp/asset/46773ddb-aa8e-474a-b8cc-b83388d46d41.svg" alt=""></span>
+          </div>
+        </article>
+
+        <article class="ecology-card">
+          <div class="ecology-card-heading"><h3>Vegetation Communities</h3></div>
+          <div class="vegetation-layout">
+            <ul class="ecology-bullets">
+              <li>Banksia woodland</li>
+              <li>Coastal heath</li>
+              <li>Coastal dune scrub</li>
+              <li>Wetland edge</li>
+            </ul>
+            <div class="vegetation-images">
+              <img src="https://www.figma.com/api/mcp/asset/a7e07f66-eec2-4f8a-b6b5-904c5eeba522.png" alt="Banksia woodland">
+              <img src="https://www.figma.com/api/mcp/asset/1e1c3525-18b6-4d7d-aed9-6ef82402201e.png" alt="Coastal vegetation">
+            </div>
+          </div>
+        </article>
+
+        <article class="ecology-card">
+          <div class="ecology-card-heading"><h3>Native Plants</h3></div>
+          <div class="native-label"><img src="https://www.figma.com/api/mcp/asset/142092b0-05e1-455f-aee6-dcdbf48f3b56.svg" alt=""><strong>Native Plants</strong></div>
+          <ul class="native-list">
+            <li>Jarrah</li><li>Marri</li><li>Banksia menziesii</li><li>Coastal Daisybush</li>
+          </ul>
+        </article>
+
+        <article class="ecology-card">
+          <div class="ecology-card-heading"><h3>Reported Invasive Species</h3></div>
+          <div class="invasive-tags">
+            <span><img src="https://www.figma.com/api/mcp/asset/c3a99817-b07f-48d0-a33a-1ed89bd3b6ce.svg" alt="">Bridal Creeper</span>
+            <span><img src="https://www.figma.com/api/mcp/asset/c3a99817-b07f-48d0-a33a-1ed89bd3b6ce.svg" alt="">Blackberry</span>
+            <span><img src="https://www.figma.com/api/mcp/asset/c3a99817-b07f-48d0-a33a-1ed89bd3b6ce.svg" alt="">Boneseed</span>
+            <span><img src="https://www.figma.com/api/mcp/asset/c3a99817-b07f-48d0-a33a-1ed89bd3b6ce.svg" alt="">Arum Lily</span>
+            <span><img src="https://www.figma.com/api/mcp/asset/c3a99817-b07f-48d0-a33a-1ed89bd3b6ce.svg" alt="">Watsonia</span>
+            <span><img src="https://www.figma.com/api/mcp/asset/c3a99817-b07f-48d0-a33a-1ed89bd3b6ce.svg" alt="">Soursob</span>
+          </div>
+        </article>
+
+        <article class="ecology-card">
+          <div class="ecology-card-heading"><h3>Recent Sightings</h3></div>
+          <div class="observation-list">
+            <div class="observation"><span class="observation-icon"><img src="https://www.figma.com/api/mcp/asset/ff7e8485-eb19-49af-bbac-ca8326cf52ef.svg" alt=""></span><div><time>2 Sep 2026</time><strong>Tuart canopy health recorded near Perry Lakes</strong><small>Observer: J. Murray</small></div></div>
+            <div class="observation"><span class="observation-icon"><img src="https://www.figma.com/api/mcp/asset/89243c48-da12-422a-9f32-d6ef45d5156f.svg" alt=""></span><div><time>28 Aug 2026</time><strong>Banksia menziesii flowering along the Zamia Trail</strong><small>Observer: K. Chen</small></div></div>
+            <div class="observation"><span class="observation-icon"><img src="https://www.figma.com/api/mcp/asset/4d3727f8-5150-4b95-b0f5-3888173c2b79.svg" alt=""></span><div><time>25 Aug 2026</time><strong>Coastal daisybush regeneration observed near the lookout</strong><small>Observer: R. Patel</small></div></div>
+          </div>
+        </article>
+
+        <article class="ecology-card">
+          <div class="ecology-card-heading"><h3>Data Sources</h3></div>
+          <div class="source-list">
+            <p><img src="https://www.figma.com/api/mcp/asset/bf02db6f-182b-41e2-8e63-45802a64cce1.svg" alt="">Department of Biodiversity, Conservation and Attractions (DBCA) — WA</p>
+            <p><img src="https://www.figma.com/api/mcp/asset/bf02db6f-182b-41e2-8e63-45802a64cce1.svg" alt="">Botanic Gardens and Parks Authority — Bold Park Management Plan</p>
+            <p><img src="https://www.figma.com/api/mcp/asset/bf02db6f-182b-41e2-8e63-45802a64cce1.svg" alt="">Friends of Bold Park Bushland — volunteer monitoring</p>
+          </div>
+          <div class="ecology-updated">Last Updated: 1 September 2026</div>
+        </article>
+
+        <button class="ecology-report-button" type="button" data-action="start-field-report">
+          <img src="https://www.figma.com/api/mcp/asset/da037d3a-5297-447e-b759-61216369466d.svg" alt="">
+          <span>Submit Field Report</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Map -->
+    <section id="map" class="screen app-screen" aria-label="Field map">
+      <header class="top-header">
+        <div><h2>Field map</h2><p>Bold Park, City Beach · live patrol view</p></div>
+        <div class="avatar">JR</div>
+      </header>
+
+      <div class="map-area">
+        <img class="map-bg" src="https://www.figma.com/api/mcp/asset/df5cbba0-00df-4279-a2fa-a3c1771d8ffc.png" alt="Map of Bold Park">
+
+        <div class="map-controls">
+          <button class="filter-btn" type="button"><img src="https://www.figma.com/api/mcp/asset/d8cc4dfe-a34a-4d52-93e2-8b324390e7a4.svg" alt=""><span>Sightings &amp; events</span></button>
+          <button class="locate-button" type="button" aria-label="Locate me"><img src="https://www.figma.com/api/mcp/asset/706a4169-a2e7-49db-8f77-3e6efdca3390.svg" alt=""></button>
+        </div>
+
+        <img class="user-location" src="https://www.figma.com/api/mcp/asset/e20bb1d5-2931-4246-b823-0c21996a1bfc.svg" alt="Your location">
+        <img class="location-core" src="https://www.figma.com/api/mcp/asset/a3bf012e-6cca-48fa-95a4-c147e7a4360e.svg" alt="">
+
+        <button class="map-marker sighting-marker marker-one" type="button" aria-label="Invasive species sighting"><img src="https://www.figma.com/api/mcp/asset/53acb35b-2098-44d6-9b2f-5755a129d51f.svg" alt=""></button>
+        <button class="map-marker sighting-marker marker-two" type="button" aria-label="Invasive species sighting"><img src="https://www.figma.com/api/mcp/asset/53acb35b-2098-44d6-9b2f-5755a129d51f.svg" alt=""></button>
+        <button class="map-marker event-marker" type="button" aria-label="Community event"><img src="https://www.figma.com/api/mcp/asset/c54bd39c-8609-4dfa-8bcc-84157542d8c8.svg" alt=""></button>
+
+        <article class="event-card">
+          <div class="event-top"><span class="chip pale">SAT 12 SEP</span><span>600 m away</span></div>
+          <h3>Bold Park Morning Hike</h3>
+          <p>8:00–11:00 AM · Camel Lake, Bold Park<br>Join 14 volunteers and the local restoration team.</p>
+          <button class="pill-btn primary compact" type="button" data-action="show-event">View event details</button>
+        </article>
+      </div>
+      <nav class="bottom-nav" aria-label="Main navigation"></nav>
+    </section>
+
+    <!-- NEW: event details -->
+    <section id="event-details" class="screen event-details-screen" aria-label="Event details">
+      <header class="detail-header event-detail-header">
+        <button class="detail-back-button" type="button" data-action="back-map" aria-label="Back to map">
+          <img src="https://www.figma.com/api/mcp/asset/7fc54874-c6b4-44fe-ab98-8135d937ab1f.svg" alt="">
+        </button>
+        <strong>Event details</strong>
+      </header>
+
+      <div class="event-sheet">
+        <img class="event-landscape" src="https://www.figma.com/api/mcp/asset/c498e90e-e411-41a1-85c3-7398e7b26d51.png" alt="Bold Park trail">
+
+        <div class="event-details-content">
+          <div class="event-details-body">
+            <div class="event-heading-vertical">
+              <span class="chip event-date-chip">SAT 12 SEP</span>
+              <span class="event-distance">600 m away</span>
+            </div>
+
+            <div class="event-title-group">
+              <h2>Bold Park Morning Hike</h2>
+              <p>Hosted by the Bold Park restoration team</p>
+            </div>
+
+            <div class="event-info-list">
+              <div class="event-info-item">
+                <div class="event-info-icon"><img src="https://www.figma.com/api/mcp/asset/7214b5ee-6cb4-4a1c-80a8-a0b84e575cba.svg" alt=""></div>
+                <div><strong>Saturday, 12 September</strong><span>8:00–11:00 AM</span></div>
+              </div>
+              <div class="event-info-item">
+                <div class="event-info-icon"><img src="https://www.figma.com/api/mcp/asset/45d2bde3-5dae-47cd-bcb8-6ed2545a64e2.svg" alt=""></div>
+                <div><strong>Camel Lake, Bold Park</strong><span>Meet at the Perry Lakes Drive trailhead</span></div>
+              </div>
+              <div class="event-info-item">
+                <div class="event-info-icon"><img src="https://www.figma.com/api/mcp/asset/9f5644a2-9d68-43ec-b580-d9747b0b27d7.svg" alt=""></div>
+                <div><strong>14 volunteers are joining</strong><span>12 places still available</span></div>
+              </div>
+            </div>
+
+            <div class="event-about">
+              <h3>About this event</h3>
+              <p>Walk the lakeside trail with local ecologists, learn to spot bridal creeper and help record priority sightings. Gloves, field guides and morning tea are provided.</p>
+            </div>
+          </div>
+
+          <button class="join-event-button" type="button" data-action="join-event">
+            <img src="https://www.figma.com/api/mcp/asset/c78f3bb1-87a7-4c8a-b43b-e44afb08d0b5.svg" alt="">
+            <span>Join this event</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
