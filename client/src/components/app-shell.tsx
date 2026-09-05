@@ -22,6 +22,8 @@ export interface AppShellProps {
   activeTab: AppShellTab;
   /** If set, shows a back chevron in the header linking here instead of the tab bar being the only way back. */
   backHref?: string;
+  /** Lets map-like pages use the full content area while keeping the shared header and navigation. */
+  fullBleed?: boolean;
   children: ReactNode;
 }
 
@@ -41,6 +43,7 @@ export function AppShell({
   subtitle,
   activeTab,
   backHref,
+  fullBleed = false,
   children,
 }: AppShellProps) {
   const router = useRouter();
@@ -49,6 +52,7 @@ export function AppShell({
     <div
       className={cn(
         "flex min-h-screen flex-col bg-background font-sans",
+        fullBleed && "h-[100dvh] overflow-hidden",
         fontSans.variable,
       )}
     >
@@ -80,7 +84,14 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-md flex-1 px-4 pb-24 pt-6 sm:max-w-2xl">
+      <main
+        className={cn(
+          "flex-1",
+          fullBleed
+            ? "min-h-0 w-full pb-[65px]"
+            : "mx-auto w-full max-w-md px-4 pb-24 pt-6 sm:max-w-2xl",
+        )}
+      >
         {children}
       </main>
 
