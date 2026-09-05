@@ -429,8 +429,8 @@ function MapOverlay({
         >
           <h2 className="text-base font-semibold">Use your location?</h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Allow location access to find nearby bushland. Your location is
-            only used to centre this map.
+            Allow location access to find nearby bushland. Your location is only
+            used to centre this map.
           </p>
           <div className="mt-3 flex gap-2">
             <button
