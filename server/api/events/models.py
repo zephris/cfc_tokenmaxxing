@@ -10,6 +10,7 @@ class Event(models.Model):
     address = models.CharField(max_length=500, blank=True)
     summary = models.TextField(blank=True)
     cost = models.CharField(max_length=100, blank=True)
+    image_path = models.CharField(max_length=255, blank=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     source_url = models.URLField(max_length=500)

@@ -1,17 +1,10 @@
-import {
-  ArrowRight,
-  CalendarDays,
-  ExternalLink,
-  Loader2,
-  MapPin,
-  Navigation,
-  Search,
-} from "lucide-react";
+import { ArrowRight, Loader2, Navigation, Search } from "lucide-react";
 import Head from "next/head";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { EventPreviewCard } from "@/components/event-preview-card";
 import { Button } from "@/components/ui/button";
 import { type MapEvent, useEvents } from "@/hooks/events";
 
@@ -50,70 +43,6 @@ function formatDistance(distance: number) {
   }
 
   return `${distance < 10 ? distance.toFixed(1) : Math.round(distance)} km away`;
-}
-
-function EventCard({
-  event,
-  distance,
-}: {
-  event: MapEvent;
-  distance?: number;
-}) {
-  return (
-    <a
-      className="group block overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      href={event.href}
-      rel="noreferrer"
-      target="_blank"
-    >
-      <article className="flex flex-col gap-3 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="w-fit rounded-full bg-highlight/30 px-2.5 py-1 text-xs font-semibold text-highlight-foreground">
-            {event.dateLabel}
-          </span>
-          <span className="text-xs font-medium text-muted-foreground">
-            {distance !== undefined
-              ? formatDistance(distance)
-              : event.availability}
-          </span>
-        </div>
-
-        <div>
-          <h2 className="text-base font-semibold leading-tight text-foreground">
-            {event.title}
-          </h2>
-          <p className="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
-            <CalendarDays
-              aria-hidden="true"
-              className="mt-0.5 h-4 w-4 shrink-0"
-            />
-            <span>{event.timeLabel}</span>
-          </p>
-          <p className="mt-1.5 flex items-start gap-2 text-sm text-muted-foreground">
-            <MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              {event.venue}
-              {event.address ? ` · ${event.address}` : ""}
-            </span>
-          </p>
-        </div>
-
-        {event.summary ? (
-          <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-            {event.summary}
-          </p>
-        ) : null}
-
-        <span className="flex items-center justify-between border-t border-border pt-3 text-sm font-medium text-primary">
-          View event details
-          <ExternalLink
-            aria-hidden="true"
-            className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-          />
-        </span>
-      </article>
-    </a>
-  );
 }
 
 export default function ExplorePage() {
@@ -306,14 +235,15 @@ export default function ExplorePage() {
           ) : (
             <div className="flex flex-col gap-3">
               {results.map((event) => (
-                <EventCard
-                  distance={
+                <EventPreviewCard
+                  metaText={
                     sortMode === "nearby" && location.status === "granted"
-                      ? distanceKm(location, event)
+                      ? formatDistance(distanceKm(location, event))
                       : undefined
                   }
                   event={event}
                   key={event.id}
+                  showImage
                 />
               ))}
             </div>

@@ -1,6 +1,6 @@
 from zoneinfo import ZoneInfo
 
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.utils import timezone
 from rest_framework.decorators import api_view
 
@@ -22,6 +22,7 @@ def _serialise_event(event):
         "address": event.address,
         "summary": event.summary,
         "availability": event.cost,
+        "imagePath": event.image_path,
         "href": event.source_url,
         "position": [event.latitude, event.longitude],
     }
@@ -38,5 +39,17 @@ def event_list(_request):
         "events": [_serialise_event(event) for event in events],
     }
     response = JsonResponse(payload)
+    response["Cache-Control"] = "public, max-age=300"
+    return response
+
+
+@api_view(["GET"])
+def event_detail(_request, source_id):
+    try:
+        event = Event.objects.get(source_id=source_id)
+    except Event.DoesNotExist as error:
+        raise Http404("Event not found") from error
+
+    response = JsonResponse(_serialise_event(event))
     response["Cache-Control"] = "public, max-age=300"
     return response

@@ -17,6 +17,10 @@ VENUE_COORDINATE_FALLBACKS = {
     "City West Lotteries House": (-31.94564, 115.84648),
     "Connect@Kenwick": (-32.0355, 115.9781),
 }
+EVENT_IMAGE_PATHS = {
+    20567: "/Images/events/SeedGenEvent.jpg",
+    20583: "/Images/events/6.-Grass-Trees-in-Full-Bloom-768x500.jpg",
+}
 
 
 def parse_datetime(value):
@@ -77,6 +81,7 @@ class Command(BaseCommand):
                         "address": address,
                         "summary": summary[:500],
                         "cost": item.get("cost") or "",
+                        "image_path": EVENT_IMAGE_PATHS.get(item["id"], ""),
                         "latitude": latitude,
                         "longitude": longitude,
                         "source_url": item["url"],
