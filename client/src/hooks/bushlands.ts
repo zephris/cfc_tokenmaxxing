@@ -7,6 +7,9 @@ export type BushlandProperties = {
   objectid: number;
   bf_sites: number | null;
   bf_mod: string | null;
+  name: string;
+  description: string;
+  sourceUrl: string;
 };
 
 export type BushlandCollection = FeatureCollection<

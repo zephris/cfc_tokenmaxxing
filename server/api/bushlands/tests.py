@@ -1,34 +1,53 @@
-import json
-from unittest.mock import MagicMock, patch
-from urllib.error import URLError
-from urllib.parse import parse_qs, urlparse
+from django.test import TestCase
 
-from django.test import SimpleTestCase
+from .models import BushlandArea
 
 
-class BushlandAreasTests(SimpleTestCase):
+class BushlandAreasTests(TestCase):
     def test_bbox_is_required(self):
         response = self.client.get("/api/bushlands/")
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.bushlands.views.urlopen")
-    def test_returns_datawa_geojson_for_map_bounds(self, mock_urlopen):
-        payload = {"type": "FeatureCollection", "features": []}
-        upstream_response = MagicMock()
-        upstream_response.read.return_value = json.dumps(payload).encode()
-        mock_urlopen.return_value.__enter__.return_value = upstream_response
+    def test_returns_stored_geojson_for_map_bounds(self):
+        BushlandArea.objects.create(
+            source_object_id=74,
+            site_number=402,
+            name="Pelican Point, Crawley",
+            modifier="",
+            description="Original Bush Forever area identified in 2000.",
+            geometry={
+                "type": "Polygon",
+                "coordinates": [[[115.8, -31.9], [115.9, -31.9], [115.8, -32.0], [115.8, -31.9]]],
+            },
+            bbox_west=115.8,
+            bbox_south=-32.0,
+            bbox_east=115.9,
+            bbox_north=-31.9,
+            source_url="https://catalogue.data.wa.gov.au/",
+        )
 
         response = self.client.get("/api/bushlands/?bbox=115.7,-32.1,116,-31.8")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), payload)
-        query = parse_qs(urlparse(mock_urlopen.call_args.args[0].full_url).query)
-        self.assertEqual(query["geometry"], ["115.7,-32.1,116.0,-31.8"])
-        self.assertEqual(query["f"], ["geojson"])
+        feature = response.json()["features"][0]
+        self.assertEqual(feature["properties"]["bf_sites"], 402)
+        self.assertEqual(feature["properties"]["name"], "Pelican Point, Crawley")
 
-    @patch("api.bushlands.views.urlopen", side_effect=URLError("offline"))
-    def test_returns_bad_gateway_when_datawa_is_unavailable(self, _mock_urlopen):
+    def test_excludes_areas_outside_bounds(self):
+        BushlandArea.objects.create(
+            source_object_id=75,
+            site_number=48,
+            name="Kensington Bushland, Kensington",
+            geometry={"type": "Polygon", "coordinates": []},
+            bbox_west=116.5,
+            bbox_south=-33.0,
+            bbox_east=116.6,
+            bbox_north=-32.9,
+            source_url="https://catalogue.data.wa.gov.au/",
+        )
+
         response = self.client.get("/api/bushlands/?bbox=115.7,-32.1,116,-31.8")
 
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["features"], [])

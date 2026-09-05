@@ -1,15 +1,7 @@
-import json
-from urllib.error import URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
-
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
-DATAWA_QUERY_URL = (
-    "https://public-services.slip.wa.gov.au/public/rest/services/"
-    "SLIP_Public_Services/Property_and_Planning/MapServer/31/query"
-)
+from .models import BushlandArea
 
 
 def _parse_bbox(raw_bbox):
@@ -39,32 +31,32 @@ def bushland_areas(request):
             status=400,
         )
 
-    params = {
-        "where": "1=1",
-        "geometry": f"{west},{south},{east},{north}",
-        "geometryType": "esriGeometryEnvelope",
-        "inSR": "4326",
-        "spatialRel": "esriSpatialRelIntersects",
-        "outFields": "objectid,bf_sites,bf_mod",
-        "returnGeometry": "true",
-        "outSR": "4326",
-        "geometryPrecision": "5",
-        "f": "geojson",
-    }
-    upstream_request = Request(
-        f"{DATAWA_QUERY_URL}?{urlencode(params)}",
-        headers={"Accept": "application/geo+json", "User-Agent": "cfc-tokenmaxxing/1.0"},
+    areas = BushlandArea.objects.filter(
+        bbox_east__gte=west,
+        bbox_west__lte=east,
+        bbox_north__gte=south,
+        bbox_south__lte=north,
     )
 
-    try:
-        with urlopen(upstream_request, timeout=20) as response:
-            payload = json.loads(response.read())
-    except (OSError, URLError, json.JSONDecodeError):
-        return JsonResponse({"detail": "Bush Forever data is temporarily unavailable"}, status=502)
-
-    if payload.get("type") != "FeatureCollection" or not isinstance(payload.get("features"), list):
-        return JsonResponse({"detail": "DataWA returned an unexpected response"}, status=502)
-
+    payload = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "id": area.source_object_id,
+                "properties": {
+                    "objectid": area.source_object_id,
+                    "bf_sites": area.site_number,
+                    "bf_mod": area.modifier,
+                    "name": area.name,
+                    "description": area.description,
+                    "sourceUrl": area.source_url,
+                },
+                "geometry": area.geometry,
+            }
+            for area in areas
+        ],
+    }
     response = JsonResponse(payload)
     response["Cache-Control"] = "public, max-age=300"
     return response
