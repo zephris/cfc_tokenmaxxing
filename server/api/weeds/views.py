@@ -23,11 +23,6 @@ def confidence_level(confidence: float) -> str:
     return "low"
 
 
-def ticket_id(sighting):
-    date_str = sighting.identified_at.strftime("%Y%m%d")
-    return f"TKT-{date_str}-{sighting.pk:04d}"
-
-
 # Single image in, forwarded untouched to the internal inference service.
 @api_view(["POST"])
 def identify_weed(request):
@@ -126,7 +121,7 @@ def report_sighting(request):
     return Response(
         {
             "id": sighting.id,
-            "ticket_id": ticket_id(sighting),
+            "ticket_id": sighting.ticket_id,
             "confirmed_species": sighting.confirmed_species,
             "observed_on": sighting.observed_on,
             "abundance": sighting.abundance,
