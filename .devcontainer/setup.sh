@@ -26,7 +26,7 @@ fi
 (cd client && npm install)
 (cd client && ln -sfn "$(command -v node)" node_modules/.bin/node)
 
-# Run the database in the background
+# Run the database, identification API, and warm inference model in the background
 docker compose up -d
 
 # Wait for the database to start
