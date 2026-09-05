@@ -412,7 +412,8 @@ function MapOverlay({
                       {sighting.species} reported
                     </p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {sighting.count} {sighting.count === 1 ? "report" : "reports"}
+                      {sighting.count}{" "}
+                      {sighting.count === 1 ? "report" : "reports"}
                     </p>
                   </li>
                 ))}
