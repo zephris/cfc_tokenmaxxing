@@ -40,6 +40,7 @@ export interface WeedCandidate {
   confidence_level: WeedConfidenceLevel;
   reference_images: string[];
   reference_links: WeedReferenceLink[];
+  wikipedia_extract?: string;
   weedscan_profile: WeedScanProfile | null;
 }
 

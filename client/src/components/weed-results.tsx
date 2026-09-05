@@ -165,6 +165,13 @@ function CandidateCard({
         </p>
       )}
 
+      {candidate.wikipedia_extract && (
+        <div className="text-sm">
+          <p className="text-muted-foreground">Reference summary</p>
+          <p className="text-foreground">{candidate.wikipedia_extract}</p>
+        </div>
+      )}
+
       {candidate.reference_links.length > 0 && (
         <div className="flex flex-col gap-1">
           {candidate.reference_links.map((link) => (
