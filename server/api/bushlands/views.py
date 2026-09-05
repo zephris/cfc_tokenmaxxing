@@ -134,3 +134,47 @@ def nearest_bushland(request):
     )
     response["Cache-Control"] = "private, max-age=300"
     return response
+
+
+@api_view(["GET"])
+def nearby_bushlands(request):
+    try:
+        latitude = _parse_coordinate(request.query_params.get("latitude"), -90, 90)
+        longitude = _parse_coordinate(request.query_params.get("longitude"), -180, 180)
+        limit = min(max(int(request.query_params.get("limit", 4)), 1), 4)
+    except (TypeError, ValueError):
+        return JsonResponse(
+            {"detail": "latitude, longitude, and limit must be valid values"},
+            status=400,
+        )
+
+    areas = list(
+        BushlandArea.objects.only(
+            "source_object_id",
+            "site_number",
+            "name",
+            "modifier",
+            "description",
+            "source_url",
+            "bbox_west",
+            "bbox_south",
+            "bbox_east",
+            "bbox_north",
+        )
+    )
+    areas.sort(key=lambda area: _distance_to_bbox(area, longitude, latitude))
+    return JsonResponse(
+        {
+            "results": [
+                {
+                    "objectid": area.source_object_id,
+                    "siteNumber": area.site_number,
+                    "name": area.name,
+                    "description": area.description,
+                    "sourceUrl": area.source_url,
+                    "distance": _distance_to_bbox(area, longitude, latitude) ** 0.5,
+                }
+                for area in areas[:limit]
+            ]
+        }
+    )

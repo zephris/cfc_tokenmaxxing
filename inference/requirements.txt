@@ -1,0 +1,6 @@
+fastapi==0.115.12
+django==5.1.14
+gunicorn==23.0.0
+numpy==2.2.5
+onnxruntime==1.21.0
+pillow==11.2.1

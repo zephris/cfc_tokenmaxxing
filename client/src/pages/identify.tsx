@@ -30,8 +30,7 @@ type FlowStep = "capture" | "results" | "report" | "success";
 /** What the user confirmed: a specific candidate, or "unidentified" (no
  * confident match, or the user picked "none of these"). */
 type ConfirmedOutcome =
-  | { kind: "candidate"; candidate: WeedCandidate }
-  | { kind: "unidentified" };
+  { kind: "candidate"; candidate: WeedCandidate } | { kind: "unidentified" };
 
 function subjectLabelFor(outcome: ConfirmedOutcome): string {
   return outcome.kind === "candidate"
@@ -231,7 +230,8 @@ export default function IdentifyPage() {
               <div>
                 <dt className="inline text-muted-foreground">Bushland: </dt>
                 <dd className="inline text-foreground">
-                  {bushlandLabelFor(reportDetails.bushlandId)}
+                  {reportDetails.bushlandName ||
+                    bushlandLabelFor(reportDetails.bushlandId)}
                 </dd>
               </div>
               <div>
