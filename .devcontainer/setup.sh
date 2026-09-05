@@ -24,6 +24,7 @@ fi
 # Install dependencies
 (cd server && POETRY_VIRTUALENVS_CREATE=false poetry install)
 (cd client && npm install)
+(cd client && ln -sfn "$(command -v node)" node_modules/.bin/node)
 
 # Run the database in the background
 docker compose up -d
