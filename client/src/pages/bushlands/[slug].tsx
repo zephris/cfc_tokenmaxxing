@@ -3,10 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 
 import { AppShell } from "@/components/app-shell";
-import { EventPreviewCard } from "@/components/event-preview-card";
 import { Button } from "@/components/ui/button";
 import { findBushlandBySlug } from "@/lib/bushland-fixtures";
-import { EVENT_FIXTURES } from "@/lib/event-fixtures";
 
 const PRIORITY_BADGE_STYLES: Record<string, string> = {
   high: "bg-destructive/10 text-destructive",
@@ -160,25 +158,6 @@ export default function BushlandProfilePage() {
             {bushland.dataCurrencyNote}
           </p>
         </section>
-
-        {(() => {
-          const relatedEvents = EVENT_FIXTURES.filter(
-            (event) => event.bushlandSlug === bushland.slug,
-          );
-          if (relatedEvents.length === 0) return null;
-          return (
-            <section className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold text-foreground">
-                Upcoming events here
-              </h2>
-              <div className="flex flex-col gap-3">
-                {relatedEvents.map((event) => (
-                  <EventPreviewCard key={event.slug} event={event} />
-                ))}
-              </div>
-            </section>
-          );
-        })()}
 
         <Button asChild className="self-start">
           <Link href={`/identify?bushland=${bushland.slug}`}>

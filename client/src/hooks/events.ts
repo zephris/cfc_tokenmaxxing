@@ -26,3 +26,12 @@ export const useEvents = () =>
       api.get<EventsResponse>("/events/").then((response) => response.data),
     staleTime: 5 * 60 * 1000,
   });
+
+export const useEvent = (id: string) =>
+  useQuery({
+    queryKey: ["events", id],
+    queryFn: () =>
+      api.get<MapEvent>(`/events/${id}/`).then((response) => response.data),
+    enabled: Boolean(id),
+    staleTime: 5 * 60 * 1000,
+  });

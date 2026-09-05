@@ -12,6 +12,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 
+import { EventPreviewSheet } from "@/components/event-preview-sheet";
 import {
   type BushlandProperties,
   type NearestBushland,
@@ -368,36 +369,7 @@ function MapOverlay({
       </div>
 
       {event ? (
-        <article className="pointer-events-auto relative rounded-lg border border-border bg-card p-4 text-card-foreground shadow-lg md:max-w-[380px]">
-          <CloseButton onClose={onClose} />
-          <div className="mb-2 flex items-center justify-between pr-8 text-xs">
-            <span className="rounded-full bg-[#F0B400] px-2 py-1 font-medium text-[#1F2933]">
-              {event.dateLabel}
-            </span>
-            <span className="font-medium text-muted-foreground">
-              {event.availability}
-            </span>
-          </div>
-          <h2 className="text-lg font-semibold leading-tight">{event.title}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {event.timeLabel} · {event.venue}
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {event.address}
-          </p>
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-            {event.summary}
-          </p>
-          <a
-            className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[#234D3B] text-xs font-medium !text-white transition-colors hover:bg-[#1B3D2F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            href={event.href}
-            rel="noreferrer"
-            target="_blank"
-          >
-            View event details
-            <ExternalLink aria-hidden="true" size={12} />
-          </a>
-        </article>
+        <EventPreviewSheet event={event} onClose={onClose} />
       ) : bushland ? (
         <article className="pointer-events-auto relative rounded-lg border border-border bg-card p-4 text-card-foreground shadow-lg md:max-w-[380px]">
           <CloseButton onClose={onClose} />
