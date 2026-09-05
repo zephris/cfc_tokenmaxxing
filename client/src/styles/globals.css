@@ -83,3 +83,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+.field-map .leaflet-tile-pane {
+  filter: sepia(0.16) saturate(0.65) hue-rotate(36deg) brightness(1.04);
+}
+
+.field-map .leaflet-bottom {
+  bottom: 0;
+}
+
+.field-map--card-open .leaflet-bottom {
+  bottom: 190px;
+}
+
+.field-map .leaflet-control-attribution {
+  background: rgb(255 255 255 / 72%);
+  color: #56635c;
+  font-size: 7px;
+}
