@@ -1,14 +1,9 @@
-import {
-  Camera,
-  ChevronLeft,
-  Compass,
-  Leaf,
-  Map as MapIcon,
-} from "lucide-react";
+import { Camera, ChevronLeft, Compass, Map as MapIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { ReactNode } from "react";
 
+import { VirensLogo } from "@/components/virens-logo";
 import { fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
@@ -67,8 +62,8 @@ export function AppShell({
               <ChevronLeft className="h-5 w-5" aria-hidden="true" />
             </Link>
           ) : (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Leaf className="h-5 w-5" aria-hidden="true" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <VirensLogo className="h-7 w-6" />
             </span>
           )}
           <div className="min-w-0">
