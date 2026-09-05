@@ -230,7 +230,8 @@ export default function IdentifyPage() {
               <div>
                 <dt className="inline text-muted-foreground">Bushland: </dt>
                 <dd className="inline text-foreground">
-                  {bushlandLabelFor(reportDetails.bushlandId)}
+                  {reportDetails.bushlandName ||
+                    bushlandLabelFor(reportDetails.bushlandId)}
                 </dd>
               </div>
               <div>

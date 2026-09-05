@@ -1,8 +1,10 @@
 import { CheckCircle2, Loader2, MapPin, MapPinOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { BUSHLAND_FIXTURES, UNSURE_BUSHLAND_ID } from "@/lib/bushland-fixtures";
+import type { NearbyBushland } from "@/hooks/bushlands";
+import { useNearbyBushlands } from "@/hooks/bushlands";
+import { BUSHLAND_FIXTURES } from "@/lib/bushland-fixtures";
 import { cn } from "@/lib/utils";
 
 export type Abundance = "single" | "patch" | "widespread";
@@ -15,6 +17,7 @@ const ABUNDANCE_OPTIONS: { value: Abundance; label: string }[] = [
 
 export interface ReportDetails {
   bushlandId: string;
+  bushlandName?: string;
   observationDate: string; // yyyy-mm-dd
   abundance: Abundance;
   latitude?: number;
@@ -60,11 +63,28 @@ export function ReportSightingForm({
     longitude: number;
   } | null>(null);
   const [bushlandId, setBushlandId] = useState<string>(
-    initialBushlandId ?? BUSHLAND_FIXTURES[0]?.slug ?? UNSURE_BUSHLAND_ID,
+    initialBushlandId ?? "",
   );
+  const [hasSelectedBushland, setHasSelectedBushland] = useState(
+    Boolean(initialBushlandId),
+  );
+  const [manualBushlandName, setManualBushlandName] = useState("");
   const [observationDate, setObservationDate] = useState(todayIsoDate());
   const [abundance, setAbundance] = useState<Abundance>("single");
   const [notes, setNotes] = useState("");
+  const nearbyBushlands = useNearbyBushlands(coords);
+
+  const bushlandOptions: NearbyBushland[] = nearbyBushlands.data ?? [];
+  const displayedBushlands = bushlandOptions.length > 0
+    ? bushlandOptions
+    : BUSHLAND_FIXTURES.slice(0, 4).map((bushland, index) => ({
+        objectid: index,
+        siteNumber: index,
+        name: bushland.name,
+        description: bushland.summary,
+        sourceUrl: "",
+        distance: 0,
+      }));
 
   const requestLocation = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -85,9 +105,20 @@ export function ReportSightingForm({
     );
   };
 
+  useEffect(() => {
+    requestLocation();
+  }, []);
+
+  useEffect(() => {
+    if (!hasSelectedBushland && displayedBushlands[0]) {
+      setBushlandId(String(displayedBushlands[0].objectid));
+    }
+  }, [displayedBushlands, hasSelectedBushland]);
+
   const handleSubmit = () => {
     onSubmit({
       bushlandId,
+      bushlandName: bushlandId === "manual" ? manualBushlandName.trim() : undefined,
       observationDate,
       abundance,
       latitude: coords?.latitude,
@@ -133,21 +164,32 @@ export function ReportSightingForm({
         <select
           id="report-bushland"
           value={bushlandId}
-          onChange={(event) => setBushlandId(event.target.value)}
+          onChange={(event) => {
+            setHasSelectedBushland(true);
+            setBushlandId(event.target.value);
+          }}
           className="rounded-md border border-input bg-background p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {BUSHLAND_FIXTURES.map((bushland) => (
-            <option key={bushland.slug} value={bushland.slug}>
-              {bushland.name} — {bushland.suburb}
+          {displayedBushlands.map((bushland) => (
+            <option key={bushland.objectid} value={String(bushland.objectid)}>
+              {bushland.name}
             </option>
           ))}
-          <option value={UNSURE_BUSHLAND_ID}>
-            Not sure / outside listed area
-          </option>
+          <option value="manual">Type manually</option>
         </select>
+        {bushlandId === "manual" && (
+          <input
+            type="text"
+            value={manualBushlandName}
+            onChange={(event) => setManualBushlandName(event.target.value)}
+            placeholder="Enter bushland or reserve name"
+            aria-label="Bushland or reserve name"
+            className="rounded-md border border-input bg-background p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        )}
         <p className="text-xs text-muted-foreground">
-          Demo list of bushland areas — this will come from the interactive map
-          once it&apos;s built (issues #5–#7).
+          Showing up to four nearby bushlands when location is available.
+          Otherwise, choose from the demo list or type a name manually.
         </p>
       </div>
 

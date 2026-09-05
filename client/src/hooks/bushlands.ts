@@ -23,6 +23,15 @@ export type NearestBushland = BushlandProperties & {
   bounds: [number, number, number, number];
 };
 
+export type NearbyBushland = {
+  objectid: number;
+  siteNumber: number;
+  name: string;
+  description: string;
+  sourceUrl: string;
+  distance: number;
+};
+
 type LocationCoordinates = {
   latitude: number;
   longitude: number;
@@ -57,6 +66,19 @@ export const useNearestBushland = (location: LocationCoordinates | null) =>
         })
         .then((response) => response.data);
     },
+    enabled: Boolean(location),
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const useNearbyBushlands = (location: LocationCoordinates | null) =>
+  useQuery({
+    queryKey: ["bushlands", "nearby", location],
+    queryFn: () =>
+      api
+        .get<{ results: NearbyBushland[] }>("/bushlands/nearby/", {
+          params: { ...location, limit: 4 },
+        })
+        .then((response) => response.data.results),
     enabled: Boolean(location),
     staleTime: 5 * 60 * 1000,
   });
