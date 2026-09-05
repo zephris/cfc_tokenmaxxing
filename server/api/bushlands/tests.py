@@ -95,3 +95,24 @@ class BushlandAreasTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_returns_four_nearby_areas_in_distance_order(self):
+        for index, longitude in enumerate((115.82, 115.9, 116.0, 116.1, 116.2), start=1):
+            BushlandArea.objects.create(
+                source_object_id=index,
+                site_number=index,
+                name=f"Area {index}",
+                geometry={"type": "Polygon", "coordinates": []},
+                bbox_west=longitude,
+                bbox_south=-32.0,
+                bbox_east=longitude + 0.01,
+                bbox_north=-31.9,
+                source_url="https://catalogue.data.wa.gov.au/",
+            )
+
+        response = self.client.get(
+            "/api/bushlands/nearby/?latitude=-31.98&longitude=115.82&limit=4"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([area["name"] for area in response.json()["results"]], ["Area 1", "Area 2", "Area 3", "Area 4"])

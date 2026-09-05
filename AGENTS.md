@@ -6,9 +6,15 @@ for setup/run instructions) being extended into an AI-powered weed identificatio
 volunteer park rangers (full product vision: GitHub issue #1).
 
 **This document currently scopes only the "weed identification" capture flow**
-(GitHub issue #2 and its sub-issues #8, #9, #10, #11). Other planned features (interactive
-bushland map viewer, ecology side menu, community events, IAM) are tracked in issues #3–#7
-but are **out of scope** for this doc — see [Out of scope](#out-of-scope) below.
+(GitHub issue #2 and its sub-issues #8, #9, #10, #11) — worked on first. Other planned
+features (interactive bushland map viewer, ecology side menu, community events, IAM) are
+tracked in issues #3–#7 but are **out of scope** for this doc — see [Out of scope](#out-of-scope)
+below.
+
+The web app targets field use by volunteer rangers, so the frontend will also run as a
+progressive web app (installable, works from the device camera in the field). PWA
+scaffolding (manifest, icons, service worker) is shared infra; the weed-ID flow is the
+first feature built on top of it.
 
 ## Stack recap
 
@@ -42,29 +48,28 @@ Parent issue #2 (take a photo, verify via DL model) breaks down into four sub-is
 #8 (image capture/upload), #9 (forward image for identification), #10 (menu for user to
 cross-reference results), #11 (structure the API answer into frontend items).
 
-Key finding (verified live 2026-09-04, see `session.transcript`): `weedscan.org.au`
-has **no public JSON identification API**, but the Razor handler
-`POST /Identify1?handler=Upload` does work when called server-side with a valid
-antiforgery token + cookies, and returns structured HTML (`resultBox` divs with
-species name, confidence %, `TopId`). So #9 forwards the image to that handler,
-parses the HTML to extract species names, then enriches each candidate with the
-official WeedScan profile API + Wikipedia before returning them for user
-confirmation (#10).
+Key finding: the CSIRO WeedScan collection includes a directly runnable ONNX
+Runtime model (`weedscan19_epoch_300.ort`) and ordered species metadata. The model
+is hosted by a dedicated Django inference service in `inference/`, kept warm in a
+separate container, and called only by the Django API. So #9 forwards the image to
+the internal model service, receives ranked species candidates, then enriches each
+candidate with the official WeedScan profile API + Wikipedia before returning them
+for user confirmation (#10). The CSIRO collection is CC BY-NC 4.0; retain its
+attribution and non-commercial restriction.
 
 ```mermaid
 sequenceDiagram
     participant U as User (browser)
     participant FE as Frontend (Next.js)
     participant BE as Backend (Django/DRF)
-    participant WS as WeedScan Identify1 handler
+    participant INF as Django inference service
     participant WP as WeedScan profiles (GitHub Pages)
     participant WK as Wikipedia
 
     U->>FE: Capture/select photo from camera/file (#8)
     FE->>BE: POST /api/weeds/identify/ (multipart image)
-    BE->>WS: GET /Identify1 (token+cookies), POST ?handler=Upload with same image bytes (#9)
-    WS-->>BE: 302 -> Identify2a HTML resultBox + TopId + confidence
-    BE->>BE: Parse species names from HTML
+    BE->>INF: POST /predict with same image bytes (#9)
+    INF-->>BE: Ranked species + confidence from ONNX model
     BE->>WP: Lookup SpeciesDescription.json
     BE->>WK: Fetch page summary
     BE->>BE: Shape candidates (#11), store WeedSighting
@@ -83,34 +88,40 @@ Common backend/frontend scaffolding shared by all four sub-issues:
 
 ### #8 — User image capture and upload
 
-- **Frontend**: `client/src/components/weed-capture.tsx` — camera/file input widget for
-  taking or selecting a photo; hands the `File` to a `useUploadWeedImage()` mutation that
-  POSTs it as multipart `image` to `/api/weeds/identify/`.
-- **Backend**: `views.py` `identify_weed` view accepts the multipart image upload and passes
-  the received image bytes straight through to the Identify1 handler in #9 (same file, no
-  re-encoding). If images are persisted to the web store, add `MEDIA_ROOT`/`MEDIA_URL`
-  settings and an `image` field on `WeedSighting` (see [Open questions](#open-questions)).
+- **Frontend**: `client/src/components/weed-capture.tsx` — offers both paths: a
+  `capture="environment"` camera input (opens the rear camera on mobile/PWA) and a plain
+  file picker for existing photos; either way hands the resulting single `File` to a
+  `useUploadWeedImage()` mutation that POSTs it as multipart `image` to
+  `/api/weeds/identify/`. Single image only — no multi-select (`multiple` unset), and a
+  new capture replaces any pending one.
+- **Backend**: `views.py` `identify_weed` view accepts exactly one multipart image upload
+  (reject with 400 if zero or more than one file) and passes the received image bytes
+  straight through to the inference service in #9 (same file, no re-encoding). If images
+  are persisted to the web store, add `MEDIA_ROOT`/`MEDIA_URL` settings and an `image`
+  field on `WeedSighting` (see [Open questions](#open-questions)).
 
-### #9 — Image identification via the Identify1 upload handler
+### #9 — Image identification via the dedicated Django inference service
 
-- **Backend identifier**: `services/weedscan_identify.py` — server-side client for the
-  Razor handler, called only from the backend (never the browser — CORS/CSRF blocked).
-  Flow per the verified live test in `session.transcript` (30KB Rubber vine image →
-  `TopId=24`, 80%):
-  1. `GET https://weedscan.org.au/Identify1` with a cookie jar; extract the
-     `__RequestVerificationToken` hidden input and keep the
-     `.AspNetCore.Antiforgery.*` cookies.
-  2. `POST https://weedscan.org.au/Identify1?handler=Upload` as multipart/form-data
-     with fields `__RequestVerificationToken` and `Upload` (field name **must** be
-     `Upload`; value is the exact image bytes received from the user's camera/file
-     upload in #8; set `Origin`/`Referer` to `https://weedscan.org.au/Identify1`);
-     follow the 302 to `Identify2a` (200 HTML, ~60KB).
-  3. Parse the HTML: `TopId` hidden input, each `div.resultBox` →
-     `<b>Common name (<i>Genus</i> <i>species</i>)</b>` + `div.colConfidence` %
-     (colour bands: `#ffc400` <30% unreliable/no record, `#ff991f` 30–50% low,
-     `#36b37e` 50–80% moderate, `#006644` >80% high; `<30%` renders
-     "Unknown plant or not included in WeedScan"). Keep `TopId`/`SuggestedId` for the
-     optional official-record step.
+- **Inference service**: `inference/` — a separate Django/Gunicorn service that
+  loads the CSIRO `weedscan19_epoch_300.ort` model once at process startup. Docker
+  keeps the model and label metadata in the persistent `weedscan-model` volume and
+  restarts the service with `restart: unless-stopped`.
+- **Model API**: `POST http://localhost:8100/predict` internally, as multipart
+  field `image`; `GET /health` reports readiness only after the model is loaded.
+  The backend adapter is `server/api/weeds/services/weedscan_identify.py` and
+  calls this service, never the browser.
+- **Preprocessing**: convert to RGB, resize by the shorter side, center-crop to
+  480×480, then normalize with mean `[123.675, 116.28, 103.53]` and standard
+  deviation `[58.395, 57.12, 57.375]`.
+- **Response**: the inference service returns `model_id`, `top_id`, and ranked
+  candidates with `scientific_name`, `common_name`, `profile_id`, and decimal
+  `confidence`. The Django API maps candidates to the stable frontend schema and
+  keeps the human-verification disclaimer. Results below 40% confidence should be
+  treated as failing the current smoke-test threshold; end users still confirm the
+  final species.
+- **Source artifacts**: model and labels come from CSIRO collection `61320`,
+  "Data for WeedScan manuscript", licensed CC BY-NC 4.0. Do not commit the model
+  binary to git; let the inference container cache it in the named volume.
 - **WeedScan enrichment** (official, lookup-only): base URL
   `https://centre-for-invasive-species-solutions.github.io/demo_json_api/` via
   `services/weedscan_profiles.py` — `GET /api.json` (weed list, cache 24h), then
@@ -148,11 +159,11 @@ Common backend/frontend scaffolding shared by all four sub-issues:
 
 ## Open questions
 
-- **Licensed WeedScan endpoint**: contact `weeds@invasives.com.au` / CSIRO / Centre for
-  Invasive Species Solutions about a WeedScan 2.0 model endpoint (`test.weedscan.org.au`
-  advertises 950 plants / 900k images but publishes no API). Until then the Identify1
-  handler works but is fragile HTML scraping — re-fetch `GET /Identify1` on 403/400
-  (expired token), and expect breakage if the Razor page changes.
+- **Model coverage and licensing**: the local model covers the published CSIRO label
+  set and is currently used for end-user cross-reference. Confirm CC BY-NC 4.0
+  attribution and non-commercial terms before production or commercial deployment,
+  and contact CSIRO / Centre for Invasive Species Solutions if broader WA coverage
+  or a newer WeedScan model is needed.
 - **Image persistence**: whether uploaded photos are stored (Postgres path + object storage)
   or only forwarded transiently — decide before finalizing `models.py`.
 - **Map viewer tech**: default to Leaflet (`react-leaflet`) unless vector-tile styling

@@ -1,15 +1,10 @@
 /**
  * Frontend contract for `POST /api/weeds/identify/` (issue #9).
  *
- * The Django/WeedScan integration behind this endpoint doesn't exist yet, so
- * this shape is derived from the "expected response" fields listed against
- * issue #9: request identifier, model identifier, ranked candidate species,
- * common/scientific names, family, confidence + confidence level, WeedScan
- * profile information, reference images, reference links and a disclaimer.
+ * The backend forwards the image to WeedScan Identify1 and returns this shape.
+ * Profile and reference fields remain empty until enrichment is implemented.
  *
- * Field names use snake_case to match Django REST Framework's default JSON
- * rendering. If the real backend ends up using a different casing or shape,
- * this file (and `weeds-mock.ts`) is the only place that needs to change.
+ * Field names use snake_case to match Django REST Framework's JSON response.
  */
 
 export type WeedConfidenceLevel = "high" | "medium" | "low";
@@ -45,12 +40,14 @@ export interface WeedCandidate {
   confidence_level: WeedConfidenceLevel;
   reference_images: string[];
   reference_links: WeedReferenceLink[];
+  wikipedia_extract?: string;
   weedscan_profile: WeedScanProfile | null;
 }
 
 export interface WeedIdentificationResponse {
   request_id: string;
   model_id: string;
+  top_id: string | null;
   /** Empty array represents "no confident match" (unknown plant). */
   candidates: WeedCandidate[];
   disclaimer: string;
