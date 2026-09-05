@@ -9,9 +9,26 @@ services:
       interval: 3s
       timeout: 3s
       retries: 5
-    env_file: ./server/.env
     ports:
       - 5432:5432
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/server/Dockerfile
+    restart: unless-stopped
+    env_file: ./server/.env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      WEEDSCAN_INFERENCE_URL: http://weedscan-inference:8100/predict
+    ports:
+      - 8000:8081
+    depends_on:
+      db:
+        condition: service_healthy
+      weedscan-inference:
+        condition: service_healthy
 
   weedscan-inference:
     build:
