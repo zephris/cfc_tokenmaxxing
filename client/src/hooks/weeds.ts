@@ -77,3 +77,77 @@ export const useIdentifyWeed = (
     },
   });
 };
+
+export interface SubmitWeedReportVariables {
+  bushlandId: string;
+  bushlandName?: string;
+  observationDate: string;
+  abundance: "single" | "patch" | "widespread";
+  latitude?: number;
+  longitude?: number;
+  notes?: string;
+  confirmedSpecies?: string;
+  candidates?: unknown[];
+  modelId?: string;
+  topScientificName?: string;
+  topConfidence?: number;
+}
+
+export interface SubmitWeedReportResponse {
+  id: number;
+  ticket_id: string;
+  confirmed_species: string;
+  observed_on: string | null;
+  abundance: string;
+  created_at?: string;
+}
+
+export const useSubmitWeedReport = (
+  args?: Omit<
+    UseMutationOptions<
+      SubmitWeedReportResponse,
+      unknown,
+      SubmitWeedReportVariables
+    >,
+    "mutationFn"
+  >,
+) => {
+  return useMutation({
+    ...args,
+    mutationFn: async (variables: SubmitWeedReportVariables) => {
+      try {
+        const res = await api.post<SubmitWeedReportResponse>("/weeds/report/", {
+          bushland_id: variables.bushlandId,
+          bushland_name: variables.bushlandName,
+          observation_date: variables.observationDate,
+          abundance: variables.abundance,
+          latitude: variables.latitude,
+          longitude: variables.longitude,
+          notes: variables.notes,
+          confirmed_species: variables.confirmedSpecies,
+          candidates: variables.candidates,
+          model_id: variables.modelId,
+          top_scientific_name: variables.topScientificName,
+          top_confidence: variables.topConfidence,
+        });
+        return res.data;
+      } catch (error) {
+        if (MOCK_FALLBACK_ENABLED && isBackendUnreachable(error)) {
+          const dateStr = new Date()
+            .toISOString()
+            .slice(0, 10)
+            .replace(/-/g, "");
+          const randomId = Math.floor(1000 + Math.random() * 9000);
+          return {
+            id: randomId,
+            ticket_id: `TKT-${dateStr}-${randomId}`,
+            confirmed_species: variables.confirmedSpecies || "",
+            observed_on: variables.observationDate,
+            abundance: variables.abundance,
+          };
+        }
+        throw error;
+      }
+    },
+  });
+};

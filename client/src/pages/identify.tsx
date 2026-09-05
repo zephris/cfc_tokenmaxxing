@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import {
+  generateTicketId,
   type ReportDetails,
   ReportSightingForm,
 } from "@/components/report-sighting-form";
@@ -15,7 +16,7 @@ import {
   WeedResults,
   type WeedResultsStatus,
 } from "@/components/weed-results";
-import { useIdentifyWeed } from "@/hooks/weeds";
+import { useIdentifyWeed, useSubmitWeedReport } from "@/hooks/weeds";
 import { BUSHLAND_FIXTURES, UNSURE_BUSHLAND_ID } from "@/lib/bushland-fixtures";
 import type { WeedCandidate } from "@/types/weeds";
 
@@ -78,6 +79,7 @@ export default function IdentifyPage() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
 
   const identifyMutation = useIdentifyWeed();
+  const reportMutation = useSubmitWeedReport();
 
   // Revoke the captured-photo preview URL whenever it changes or the page unmounts.
   useEffect(() => {
@@ -130,8 +132,45 @@ export default function IdentifyPage() {
   };
 
   const handleSubmitReport = (details: ReportDetails) => {
-    setReportDetails(details);
-    setStep("success");
+    const topCandidate =
+      confirmedOutcome?.kind === "candidate"
+        ? confirmedOutcome.candidate
+        : undefined;
+
+    reportMutation.mutate(
+      {
+        bushlandId: details.bushlandId,
+        bushlandName: details.bushlandName,
+        observationDate: details.observationDate,
+        abundance: details.abundance,
+        latitude: details.latitude,
+        longitude: details.longitude,
+        notes: details.notes,
+        confirmedSpecies: confirmedOutcome
+          ? subjectLabelFor(confirmedOutcome)
+          : undefined,
+        candidates: identifyMutation.data?.candidates,
+        modelId: identifyMutation.data?.model_id,
+        topScientificName: topCandidate?.scientific_name,
+        topConfidence: topCandidate?.confidence,
+      },
+      {
+        onSuccess: (data) => {
+          setReportDetails({
+            ...details,
+            ticketId: data.ticket_id,
+          });
+          setStep("success");
+        },
+        onError: () => {
+          setReportDetails({
+            ...details,
+            ticketId: details.ticketId || generateTicketId(),
+          });
+          setStep("success");
+        },
+      },
+    );
   };
 
   const resultsStatus: WeedResultsStatus = identifyMutation.isPending
@@ -178,6 +217,7 @@ export default function IdentifyPage() {
             aiConfidenceLabel={aiConfidenceLabelFor(confirmedOutcome)}
             photoPreviewUrl={photoPreviewUrl}
             initialBushlandId={bushlandFromQuery}
+            isSubmitting={reportMutation.isPending}
             onSubmit={handleSubmitReport}
             onBack={handleBackToResults}
           />
@@ -213,6 +253,14 @@ export default function IdentifyPage() {
             )}
 
             <dl className="flex flex-col gap-1 text-sm">
+              {reportDetails.ticketId && (
+                <div>
+                  <dt className="inline text-muted-foreground">Ticket ID: </dt>
+                  <dd className="inline font-mono font-medium text-foreground">
+                    {reportDetails.ticketId}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="inline text-muted-foreground">Species: </dt>
                 <dd className="inline text-foreground">

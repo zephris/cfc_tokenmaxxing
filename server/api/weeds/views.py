@@ -3,6 +3,9 @@ from uuid import uuid4
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from api.bushlands.models import BushlandArea
+
+from .models import WeedSighting
 from .services import plant_references
 from .services import weedscan_identify
 
@@ -59,4 +62,65 @@ def identify_weed(request):
                 for rank, c in enumerate(result.candidates, start=1)
             ],
         }
+    )
+
+
+@api_view(["POST"])
+def report_sighting(request):
+    data = request.data
+    bushland_id = data.get("bushland_id") or data.get("bushlandId")
+    bushland = None
+    if bushland_id is not None and str(bushland_id).isdigit():
+        bushland = (
+            BushlandArea.objects.filter(source_object_id=int(bushland_id)).first()
+            or BushlandArea.objects.filter(pk=int(bushland_id)).first()
+        )
+
+    observed_on = data.get("observed_on") or data.get("observation_date") or data.get("observationDate")
+    abundance = data.get("abundance", "")
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+    notes = data.get("notes", "")
+    confirmed_species = (
+        data.get("confirmed_species")
+        or data.get("confirmedSpecies")
+        or data.get("subject_label")
+        or data.get("subjectLabel", "")
+    )
+    model_id = data.get("model_id") or data.get("modelId") or "weedscan19_epoch_300"
+    top_scientific_name = data.get("top_scientific_name") or data.get("topScientificName", "")
+    top_common_name = data.get("top_common_name") or data.get("topCommonName", "")
+    top_confidence = data.get("top_confidence") or data.get("topConfidence")
+    candidates = data.get("candidates", [])
+    image_reference = data.get("image_reference") or data.get("imageReference", "")
+
+    user = request.user if request.user.is_authenticated else None
+
+    sighting = WeedSighting.objects.create(
+        model_id=model_id,
+        candidates=candidates,
+        top_scientific_name=top_scientific_name,
+        top_common_name=top_common_name,
+        top_confidence=top_confidence,
+        confirmed_species=confirmed_species,
+        bushland_area=bushland,
+        reported_by=user,
+        observed_on=observed_on if observed_on else None,
+        abundance=abundance if abundance in WeedSighting.Abundance.values else "",
+        latitude=latitude if latitude is not None else None,
+        longitude=longitude if longitude is not None else None,
+        notes=notes[:500] if notes else "",
+        image_reference=image_reference,
+    )
+
+    return Response(
+        {
+            "id": sighting.id,
+            "ticket_id": sighting.ticket_id,
+            "confirmed_species": sighting.confirmed_species,
+            "observed_on": sighting.observed_on,
+            "abundance": sighting.abundance,
+            "created_at": sighting.identified_at,
+        },
+        status=201,
     )

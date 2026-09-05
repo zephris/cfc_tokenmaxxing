@@ -102,6 +102,8 @@ class WeedSightingModelTests(TestCase):
         self.assertEqual(bushland.weed_sightings.get(), sighting)
         self.assertEqual(user.weed_sightings.get(), sighting)
         self.assertEqual(sighting.candidates[0]["confidence"], 0.8)
+        self.assertTrue(sighting.ticket_id.startswith("TKT-"))
+        self.assertIn(f"-{sighting.pk:04d}", sighting.ticket_id)
 
     def test_database_rejects_invalid_confidence_and_coordinates(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
@@ -112,3 +114,42 @@ class WeedSightingModelTests(TestCase):
 
         with self.assertRaises(IntegrityError), transaction.atomic():
             WeedSighting.objects.create(model_id="weedscan19_epoch_300", longitude=180.1)
+
+
+class ReportSightingViewTests(TestCase):
+    def test_create_report_generates_ticket_id_and_saves_sighting(self):
+        bushland = BushlandArea.objects.create(
+            source_object_id=101,
+            site_number=1,
+            name="Kings Park",
+            geometry={"type": "Polygon", "coordinates": []},
+            bbox_west=115.8,
+            bbox_south=-32.0,
+            bbox_east=115.9,
+            bbox_north=-31.9,
+            source_url="https://data.example/bushland/101",
+        )
+
+        payload = {
+            "bushland_id": 101,
+            "observation_date": "2026-09-05",
+            "abundance": "patch",
+            "latitude": -31.95,
+            "longitude": 115.86,
+            "notes": "Near south gate",
+            "confirmed_species": "Lantana (Lantana camara)",
+            "top_scientific_name": "Lantana camara",
+            "top_confidence": 0.95,
+        }
+
+        response = self.client.post("/api/weeds/report/", payload, content_type="application/json")
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertIn("ticket_id", data)
+        self.assertTrue(data["ticket_id"].startswith("TKT-"))
+        self.assertEqual(data["confirmed_species"], "Lantana (Lantana camara)")
+
+        sighting = WeedSighting.objects.get(id=data["id"])
+        self.assertEqual(sighting.bushland_area, bushland)
+        self.assertEqual(sighting.ticket_id, data["ticket_id"])
+        self.assertEqual(sighting.notes, "Near south gate")
