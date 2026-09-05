@@ -37,6 +37,8 @@ export function WeedCapture({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showCameraPermissionPrompt, setShowCameraPermissionPrompt] =
+    useState(false);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
@@ -90,6 +92,10 @@ export function WeedCapture({
   const handleSubmit = () => {
     if (!selectedFile || isSubmitting) return;
     onSubmit(selectedFile);
+  };
+
+  const openCameraPrompt = () => {
+    setShowCameraPermissionPrompt(true);
   };
 
   const displayedError = validationError ?? submitError;
@@ -167,7 +173,7 @@ export function WeedCapture({
           <div className="flex flex-wrap justify-center gap-2">
             <Button
               type="button"
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={openCameraPrompt}
               aria-label="Take a photo using your camera"
             >
               <Camera className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -183,6 +189,40 @@ export function WeedCapture({
               Choose Image
             </Button>
           </div>
+          {showCameraPermissionPrompt ? (
+            <div
+              aria-live="polite"
+              className="mt-2 rounded-md border border-input bg-background p-4 text-left"
+            >
+              <p className="text-sm font-medium text-foreground">
+                Allow camera access?
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                We need your permission before opening the camera. You can
+                choose an existing image instead.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setShowCameraPermissionPrompt(false);
+                    cameraInputRef.current?.click();
+                  }}
+                >
+                  Continue
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowCameraPermissionPrompt(false)}
+                >
+                  Not now
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
 

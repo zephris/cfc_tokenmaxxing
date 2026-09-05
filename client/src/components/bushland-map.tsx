@@ -1,6 +1,6 @@
 import { latLng, latLngBounds, Polygon as LeafletPolygon } from "leaflet";
 import { ExternalLink, LocateFixed, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Circle,
   CircleMarker,
@@ -252,7 +252,7 @@ function MapOverlay({
   onLocationStatusChange,
 }: MapOverlayProps) {
   const map = useMap();
-  const hasRequestedLocation = useRef(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(true);
 
   useMapEvents({
     locationerror() {
@@ -268,22 +268,6 @@ function MapOverlay({
       map.flyTo(locationEvent.latlng, 13, { animate: true, duration: 0.8 });
     },
   });
-
-  useEffect(() => {
-    if (hasRequestedLocation.current) {
-      return;
-    }
-
-    hasRequestedLocation.current = true;
-    onClose();
-    onLocationStatusChange("locating");
-    map.locate({
-      enableHighAccuracy: true,
-      maximumAge: 30_000,
-      setView: false,
-      timeout: 10_000,
-    });
-  }, [map, onClose, onLocationStatusChange]);
 
   useEffect(() => {
     if (events.length > 0 && !currentLocation) {
@@ -328,7 +312,8 @@ function MapOverlay({
     }
   }
 
-  function locateUser() {
+  function requestLocation() {
+    setShowLocationPrompt(false);
     onClose();
     onLocationStatusChange("locating");
     map.locate({
@@ -337,6 +322,10 @@ function MapOverlay({
       setView: false,
       timeout: 10_000,
     });
+  }
+
+  function locateUser() {
+    setShowLocationPrompt(true);
   }
 
   return (
@@ -430,6 +419,35 @@ function MapOverlay({
             View data source
             <ExternalLink aria-hidden="true" size={12} />
           </a>
+        </article>
+      ) : showLocationPrompt &&
+        locationStatus !== "locating" &&
+        locationStatus !== "found" ? (
+        <article
+          aria-live="polite"
+          className="pointer-events-auto rounded-lg border border-border bg-card p-4 text-card-foreground shadow-lg md:max-w-[380px]"
+        >
+          <h2 className="text-base font-semibold">Use your location?</h2>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Allow location access to find nearby bushland. Your location is
+            only used to centre this map.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              className="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              onClick={requestLocation}
+              type="button"
+            >
+              Allow location
+            </button>
+            <button
+              className="rounded-md px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent"
+              onClick={() => setShowLocationPrompt(false)}
+              type="button"
+            >
+              Not now
+            </button>
+          </div>
         </article>
       ) : null}
     </div>

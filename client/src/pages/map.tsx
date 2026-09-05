@@ -35,7 +35,7 @@ export default function MapPage() {
           : "Finding nearest bushland…"
         : locationStatus === "error"
           ? "Location unavailable · check browser permission"
-          : "Requesting current location…";
+          : "Location not shared";
 
   return (
     <AppShell activeTab="map" fullBleed subtitle={subtitle} title="Field map">
