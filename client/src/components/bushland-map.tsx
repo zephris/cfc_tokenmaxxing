@@ -1,7 +1,8 @@
-import { latLngBounds } from "leaflet";
+import { latLng, latLngBounds, Polygon as LeafletPolygon } from "leaflet";
 import { ExternalLink, LocateFixed, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Circle,
   CircleMarker,
   GeoJSON,
   MapContainer,
@@ -11,7 +12,11 @@ import {
   useMapEvents,
 } from "react-leaflet";
 
-import { type BushlandProperties, useBushlands } from "@/hooks/bushlands";
+import {
+  type BushlandProperties,
+  type NearestBushland,
+  useBushlands,
+} from "@/hooks/bushlands";
 import { type MapEvent, useEvents } from "@/hooks/events";
 
 const PERTH_CENTRE: [number, number] = [-31.953, 115.857];
@@ -20,6 +25,7 @@ const INITIAL_BOUNDS: [number, number, number, number] = [
 ];
 const EVENT_COLOUR = "#F0B400";
 const BUSHLAND_COLOUR = "#234D3B";
+const CURRENT_LOCATION_COLOUR = "#2563EB";
 const EVENT_BOUNDS_OPTIONS = {
   paddingTopLeft: [48, 48] as [number, number],
   paddingBottomRight: [48, 48] as [number, number],
@@ -29,12 +35,28 @@ const CARD_OPEN_BOUNDS_OPTIONS = {
   paddingBottomRight: [48, 230] as [number, number],
 };
 
+export type CurrentLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+};
+
+export type GeolocationStatus = "idle" | "locating" | "found" | "error";
+
+export type BushlandMapProps = {
+  nearestBushland: NearestBushland | null;
+  onLocationChange: (location: CurrentLocation) => void;
+  onLocationStatusChange: (status: GeolocationStatus) => void;
+};
+
 type BushlandAreasProps = {
+  currentLocation: CurrentLocation | null;
   selectedObjectId?: number;
   onSelectBushland: (bushland: BushlandProperties) => void;
 };
 
 function BushlandAreas({
+  currentLocation,
   selectedObjectId,
   onSelectBushland,
 }: BushlandAreasProps) {
@@ -56,11 +78,21 @@ function BushlandAreas({
   return data ? (
     <GeoJSON
       data={data}
-      key={`${bbox.join(",")}-${selectedObjectId ?? "none"}`}
+      key={`${bbox.join(",")}-${selectedObjectId ?? "none"}-${
+        currentLocation
+          ? `${currentLocation.latitude},${currentLocation.longitude}`
+          : "no-location"
+      }`}
       onEachFeature={(feature, layer) => {
         const properties = feature.properties as BushlandProperties;
         layer.bindTooltip(properties.name, { direction: "top", sticky: true });
-        layer.on("click", () => onSelectBushland(properties));
+        layer.on("click", () => {
+          const distanceMetres =
+            currentLocation && layer instanceof LeafletPolygon
+              ? distanceFromLocationToBounds(currentLocation, layer.getBounds())
+              : undefined;
+          onSelectBushland({ ...properties, distanceMetres });
+        });
       }}
       style={(feature) => {
         const properties = feature?.properties as
@@ -78,6 +110,51 @@ function BushlandAreas({
       }}
     />
   ) : null;
+}
+
+function distanceFromLocationToBounds(
+  location: CurrentLocation,
+  bounds: ReturnType<typeof latLngBounds>,
+) {
+  const nearestLatitude = Math.max(
+    bounds.getSouth(),
+    Math.min(location.latitude, bounds.getNorth()),
+  );
+  const nearestLongitude = Math.max(
+    bounds.getWest(),
+    Math.min(location.longitude, bounds.getEast()),
+  );
+
+  return mapDistance(
+    location.latitude,
+    location.longitude,
+    nearestLatitude,
+    nearestLongitude,
+  );
+}
+
+function mapDistance(
+  fromLatitude: number,
+  fromLongitude: number,
+  toLatitude: number,
+  toLongitude: number,
+) {
+  return latLng(fromLatitude, fromLongitude).distanceTo(
+    latLng(toLatitude, toLongitude),
+  );
+}
+
+function formatBushlandDistance(distanceMetres: number) {
+  if (distanceMetres < 50) {
+    return "You are in or beside this bushland";
+  }
+
+  if (distanceMetres < 1000) {
+    return `About ${Math.round(distanceMetres / 10) * 10} m from your location`;
+  }
+
+  const kilometres = distanceMetres / 1000;
+  return `About ${kilometres < 10 ? kilometres.toFixed(1) : Math.round(kilometres)} km from your location`;
 }
 
 type MapMarkersProps = {
@@ -119,24 +196,122 @@ function MapMarkers({
   );
 }
 
+function CurrentLocationMarker({ location }: { location: CurrentLocation }) {
+  const position: [number, number] = [location.latitude, location.longitude];
+
+  return (
+    <>
+      <Circle
+        center={position}
+        interactive={false}
+        pathOptions={{
+          color: CURRENT_LOCATION_COLOUR,
+          fillColor: CURRENT_LOCATION_COLOUR,
+          fillOpacity: 0.08,
+          opacity: 0.45,
+          weight: 1.5,
+        }}
+        radius={location.accuracy}
+      />
+      <CircleMarker
+        center={position}
+        fillColor={CURRENT_LOCATION_COLOUR}
+        fillOpacity={1}
+        pathOptions={{ color: "white", weight: 3 }}
+        radius={8}
+      >
+        <Tooltip direction="top" offset={[0, -8]}>
+          Current location
+        </Tooltip>
+      </CircleMarker>
+    </>
+  );
+}
+
 type MapOverlayProps = {
   events: MapEvent[];
   event: MapEvent | null;
   bushland: BushlandProperties | null;
+  currentLocation: CurrentLocation | null;
+  locationStatus: GeolocationStatus;
+  nearestBushland: NearestBushland | null;
   onClose: () => void;
+  onLocationFound: (location: CurrentLocation) => void;
+  onLocationStatusChange: (status: GeolocationStatus) => void;
 };
 
-function MapOverlay({ events, event, bushland, onClose }: MapOverlayProps) {
+function MapOverlay({
+  events,
+  event,
+  bushland,
+  currentLocation,
+  locationStatus,
+  nearestBushland,
+  onClose,
+  onLocationFound,
+  onLocationStatusChange,
+}: MapOverlayProps) {
   const map = useMap();
+  const hasRequestedLocation = useRef(false);
+
+  useMapEvents({
+    locationerror() {
+      onLocationStatusChange("error");
+    },
+    locationfound(locationEvent) {
+      const location = {
+        latitude: locationEvent.latlng.lat,
+        longitude: locationEvent.latlng.lng,
+        accuracy: locationEvent.accuracy,
+      };
+      onLocationFound(location);
+      map.flyTo(locationEvent.latlng, 13, { animate: true, duration: 0.8 });
+    },
+  });
 
   useEffect(() => {
-    if (events.length > 0) {
+    if (hasRequestedLocation.current) {
+      return;
+    }
+
+    hasRequestedLocation.current = true;
+    onClose();
+    onLocationStatusChange("locating");
+    map.locate({
+      enableHighAccuracy: true,
+      maximumAge: 30_000,
+      setView: false,
+      timeout: 10_000,
+    });
+  }, [map, onClose, onLocationStatusChange]);
+
+  useEffect(() => {
+    if (events.length > 0 && !currentLocation) {
       map.fitBounds(
         latLngBounds(events.map((mapEvent) => mapEvent.position)),
         EVENT_BOUNDS_OPTIONS,
       );
     }
-  }, [events, map]);
+  }, [currentLocation, events, map]);
+
+  useEffect(() => {
+    if (!currentLocation || !nearestBushland) {
+      return;
+    }
+
+    const [west, south, east, north] = nearestBushland.bounds;
+    const visibleBounds = latLngBounds([
+      [south, west],
+      [north, east],
+    ]);
+    visibleBounds.extend([currentLocation.latitude, currentLocation.longitude]);
+    map.fitBounds(visibleBounds, {
+      animate: true,
+      maxZoom: 13,
+      paddingBottomRight: [48, 230],
+      paddingTopLeft: [48, 48],
+    });
+  }, [currentLocation, map, nearestBushland]);
 
   useEffect(() => {
     if (event) {
@@ -154,7 +329,14 @@ function MapOverlay({ events, event, bushland, onClose }: MapOverlayProps) {
   }
 
   function locateUser() {
-    map.locate({ enableHighAccuracy: true, maxZoom: 15, setView: true });
+    onClose();
+    onLocationStatusChange("locating");
+    map.locate({
+      enableHighAccuracy: true,
+      maximumAge: 30_000,
+      setView: false,
+      timeout: 10_000,
+    });
   }
 
   return (
@@ -171,11 +353,18 @@ function MapOverlay({ events, event, bushland, onClose }: MapOverlayProps) {
 
         <button
           aria-label="Find my location"
-          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full border border-border bg-background text-primary shadow-sm transition-colors hover:bg-accent"
+          aria-busy={locationStatus === "locating"}
+          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full border border-border bg-background text-primary shadow-sm transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-70"
+          disabled={locationStatus === "locating"}
           onClick={locateUser}
           type="button"
         >
-          <LocateFixed aria-hidden="true" size={17} strokeWidth={1.7} />
+          <LocateFixed
+            aria-hidden="true"
+            className={locationStatus === "locating" ? "animate-pulse" : ""}
+            size={17}
+            strokeWidth={1.7}
+          />
         </button>
       </div>
 
@@ -222,6 +411,11 @@ function MapOverlay({ events, event, bushland, onClose }: MapOverlayProps) {
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
             {bushland.description}
           </p>
+          {bushland.distanceMetres !== undefined ? (
+            <p className="mt-2 text-xs font-semibold text-[#234D3B]">
+              {formatBushlandDistance(bushland.distanceMetres)}
+            </p>
+          ) : null}
           {bushland.bf_mod ? (
             <p className="mt-2 text-xs font-medium text-[#234D3B]">
               {bushland.bf_mod}
@@ -259,12 +453,39 @@ function CloseButton({ onClose }: CloseButtonProps) {
   );
 }
 
-export default function BushlandMap() {
+export default function BushlandMap({
+  nearestBushland,
+  onLocationChange,
+  onLocationStatusChange,
+}: BushlandMapProps) {
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null);
   const [selectedBushland, setSelectedBushland] =
     useState<BushlandProperties | null>(null);
+  const [currentLocation, setCurrentLocation] =
+    useState<CurrentLocation | null>(null);
+  const [locationStatus, setLocationStatus] =
+    useState<GeolocationStatus>("idle");
   const { data } = useEvents();
   const events = useMemo(() => data?.events ?? [], [data?.events]);
+
+  useEffect(() => {
+    if (!nearestBushland) {
+      return;
+    }
+
+    const [west, south, east, north] = nearestBushland.bounds;
+    const distanceMetres = currentLocation
+      ? distanceFromLocationToBounds(
+          currentLocation,
+          latLngBounds([
+            [south, west],
+            [north, east],
+          ]),
+        )
+      : undefined;
+    setSelectedEvent(null);
+    setSelectedBushland({ ...nearestBushland, distanceMetres });
+  }, [currentLocation, nearestBushland]);
 
   function selectEvent(event: MapEvent) {
     setSelectedBushland(null);
@@ -279,6 +500,18 @@ export default function BushlandMap() {
   function closeDetails() {
     setSelectedEvent(null);
     setSelectedBushland(null);
+  }
+
+  function updateLocationStatus(status: GeolocationStatus) {
+    setLocationStatus(status);
+    onLocationStatusChange(status);
+  }
+
+  function updateLocation(location: CurrentLocation) {
+    setCurrentLocation(location);
+    setLocationStatus("found");
+    onLocationChange(location);
+    onLocationStatusChange("found");
   }
 
   return (
@@ -296,6 +529,7 @@ export default function BushlandMap() {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <BushlandAreas
+        currentLocation={currentLocation}
         onSelectBushland={selectBushland}
         selectedObjectId={selectedBushland?.objectid}
       />
@@ -304,11 +538,19 @@ export default function BushlandMap() {
         onSelectEvent={selectEvent}
         selectedEventId={selectedEvent?.id}
       />
+      {currentLocation ? (
+        <CurrentLocationMarker location={currentLocation} />
+      ) : null}
       <MapOverlay
         bushland={selectedBushland}
+        currentLocation={currentLocation}
         event={selectedEvent}
         events={events}
+        locationStatus={locationStatus}
+        nearestBushland={nearestBushland}
         onClose={closeDetails}
+        onLocationFound={updateLocation}
+        onLocationStatusChange={updateLocationStatus}
       />
     </MapContainer>
   );

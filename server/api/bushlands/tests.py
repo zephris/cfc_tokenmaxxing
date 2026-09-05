@@ -51,3 +51,47 @@ class BushlandAreasTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["features"], [])
+
+    def test_returns_nearest_area_and_bounds(self):
+        BushlandArea.objects.create(
+            source_object_id=74,
+            site_number=402,
+            name="Pelican Point, Crawley",
+            description="River-side bushland information.",
+            geometry={"type": "Polygon", "coordinates": []},
+            bbox_west=115.81,
+            bbox_south=-31.99,
+            bbox_east=115.83,
+            bbox_north=-31.97,
+            source_url="https://catalogue.data.wa.gov.au/",
+        )
+        BushlandArea.objects.create(
+            source_object_id=75,
+            site_number=48,
+            name="Kensington Bushland, Kensington",
+            geometry={"type": "Polygon", "coordinates": []},
+            bbox_west=115.88,
+            bbox_south=-32.01,
+            bbox_east=115.9,
+            bbox_north=-31.99,
+            source_url="https://catalogue.data.wa.gov.au/",
+        )
+
+        response = self.client.get(
+            "/api/bushlands/nearest/?latitude=-31.98&longitude=115.82"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["name"], "Pelican Point, Crawley")
+        self.assertEqual(
+            response.json()["description"],
+            "River-side bushland information.",
+        )
+        self.assertEqual(response.json()["bounds"], [115.81, -31.99, 115.83, -31.97])
+
+    def test_nearest_area_requires_valid_coordinates(self):
+        response = self.client.get(
+            "/api/bushlands/nearest/?latitude=not-a-number&longitude=115.82"
+        )
+
+        self.assertEqual(response.status_code, 400)
