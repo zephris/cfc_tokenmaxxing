@@ -62,9 +62,7 @@ export function ReportSightingForm({
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [bushlandId, setBushlandId] = useState<string>(
-    initialBushlandId ?? "",
-  );
+  const [bushlandId, setBushlandId] = useState<string>(initialBushlandId ?? "");
   const [hasSelectedBushland, setHasSelectedBushland] = useState(
     Boolean(initialBushlandId),
   );
@@ -75,16 +73,17 @@ export function ReportSightingForm({
   const nearbyBushlands = useNearbyBushlands(coords);
 
   const bushlandOptions: NearbyBushland[] = nearbyBushlands.data ?? [];
-  const displayedBushlands = bushlandOptions.length > 0
-    ? bushlandOptions
-    : BUSHLAND_FIXTURES.slice(0, 4).map((bushland, index) => ({
-        objectid: index,
-        siteNumber: index,
-        name: bushland.name,
-        description: bushland.summary,
-        sourceUrl: "",
-        distance: 0,
-      }));
+  const displayedBushlands =
+    bushlandOptions.length > 0
+      ? bushlandOptions
+      : BUSHLAND_FIXTURES.slice(0, 4).map((bushland, index) => ({
+          objectid: index,
+          siteNumber: index,
+          name: bushland.name,
+          description: bushland.summary,
+          sourceUrl: "",
+          distance: 0,
+        }));
 
   const requestLocation = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -118,7 +117,8 @@ export function ReportSightingForm({
   const handleSubmit = () => {
     onSubmit({
       bushlandId,
-      bushlandName: bushlandId === "manual" ? manualBushlandName.trim() : undefined,
+      bushlandName:
+        bushlandId === "manual" ? manualBushlandName.trim() : undefined,
       observationDate,
       abundance,
       latitude: coords?.latitude,
