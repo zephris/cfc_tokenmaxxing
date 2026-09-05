@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -8,6 +9,7 @@ from django.test import TestCase
 from api.bushlands.models import BushlandArea
 
 from .models import WeedSighting
+from .views import _sighting_event
 from .services.plant_references import PlantReferences
 from .services.weedscan_identify import WeedScanCandidate, WeedScanResult
 
@@ -117,6 +119,30 @@ class WeedSightingModelTests(TestCase):
 
 
 class ReportSightingViewTests(TestCase):
+    def test_realtime_event_uses_public_bushland_id(self):
+        bushland = BushlandArea.objects.create(
+            source_object_id=101,
+            site_number=1,
+            name="Kings Park",
+            geometry={"type": "Polygon", "coordinates": []},
+            bbox_west=115.8,
+            bbox_south=-32.0,
+            bbox_east=115.9,
+            bbox_north=-31.9,
+            source_url="https://data.example/bushland/101",
+        )
+        sighting = WeedSighting.objects.create(
+            model_id="realtime-test",
+            confirmed_species="Lantana",
+            bushland_area=bushland,
+            observed_on=date(2026, 9, 5),
+        )
+
+        event = _sighting_event(sighting)
+
+        self.assertEqual(event["bushland_id"], 101)
+        self.assertEqual(event["sighting"]["species"], "Lantana")
+
     def test_create_report_generates_ticket_id_and_saves_sighting(self):
         bushland = BushlandArea.objects.create(
             source_object_id=101,

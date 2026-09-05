@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { latLng, latLngBounds, Polygon as LeafletPolygon } from "leaflet";
 import {
   CalendarDays,
@@ -469,6 +470,7 @@ export default function BushlandMap({
   onLocationChange,
   onLocationStatusChange,
 }: BushlandMapProps) {
+  const queryClient = useQueryClient();
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null);
   const [selectedBushland, setSelectedBushland] =
     useState<BushlandProperties | null>(null);
@@ -478,6 +480,38 @@ export default function BushlandMap({
     useState<GeolocationStatus>("idle");
   const { data } = useEvents();
   const events = useMemo(() => data?.events ?? [], [data?.events]);
+
+  useEffect(() => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl || typeof window === "undefined") {
+      return;
+    }
+
+    const source = new EventSource(`${backendUrl}/weeds/stream/`);
+    source.onmessage = (message) => {
+      const update = JSON.parse(message.data) as {
+        bushland_id: number | null;
+        sighting: NonNullable<BushlandProperties["reportedSightings"]>[number];
+      };
+      queryClient.invalidateQueries({ queryKey: ["bushlands"] });
+      if (update.bushland_id === null) {
+        return;
+      }
+      setSelectedBushland((current) =>
+        current?.objectid === update.bushland_id
+          ? {
+              ...current,
+              reportedSightings: [
+                update.sighting,
+                ...(current.reportedSightings ?? []),
+              ].slice(0, 3),
+            }
+          : current,
+      );
+    };
+
+    return () => source.close();
+  }, [queryClient]);
 
   useEffect(() => {
     if (!nearestBushland) {

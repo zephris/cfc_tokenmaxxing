@@ -1,5 +1,10 @@
+import json
+import time
 from uuid import uuid4
 
+from django.db import close_old_connections
+from django.http import StreamingHttpResponse
+from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -16,6 +21,11 @@ def confidence_level(confidence: float) -> str:
     if confidence >= 0.5:
         return "medium"
     return "low"
+
+
+def ticket_id(sighting):
+    date_str = sighting.identified_at.strftime("%Y%m%d")
+    return f"TKT-{date_str}-{sighting.pk:04d}"
 
 
 # Single image in, forwarded untouched to the internal inference service.
@@ -116,7 +126,7 @@ def report_sighting(request):
     return Response(
         {
             "id": sighting.id,
-            "ticket_id": sighting.ticket_id,
+            "ticket_id": ticket_id(sighting),
             "confirmed_species": sighting.confirmed_species,
             "observed_on": sighting.observed_on,
             "abundance": sighting.abundance,
@@ -124,3 +134,48 @@ def report_sighting(request):
         },
         status=201,
     )
+
+
+def _sighting_event(sighting):
+    return {
+        "id": sighting.id,
+        "bushland_id": sighting.bushland_area.source_object_id,
+        "sighting": {
+            "date": (sighting.observed_on or sighting.identified_at.date()).isoformat(),
+            "species": sighting.confirmed_species
+            or sighting.top_common_name
+            or sighting.top_scientific_name
+            or "Unidentified weed",
+            "count": 1,
+        },
+    }
+
+
+@api_view(["GET"])
+def sighting_stream(request):
+    def events():
+        cursor = timezone.now()
+        yield ": connected\n\n"
+
+        while True:
+            close_old_connections()
+            sightings = list(
+                WeedSighting.objects.filter(
+                    identified_at__gt=cursor,
+                    bushland_area__isnull=False,
+                )
+                .select_related("bushland_area")
+                .order_by("identified_at", "id")[:50]
+            )
+            if sightings:
+                for sighting in sightings:
+                    cursor = max(cursor, sighting.identified_at)
+                    yield f"data: {json.dumps(_sighting_event(sighting))}\n\n"
+            else:
+                yield ": keepalive\n\n"
+            time.sleep(1)
+
+    response = StreamingHttpResponse(events(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
