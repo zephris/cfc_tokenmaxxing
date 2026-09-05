@@ -1,8 +1,13 @@
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
+from api.bushlands.models import BushlandArea
+
+from .models import WeedSighting
 from .services.plant_references import PlantReferences
 from .services.weedscan_identify import WeedScanCandidate, WeedScanResult
 
@@ -63,3 +68,47 @@ class IdentifyWeedTests(TestCase):
         response = self.client.post("/api/weeds/identify/", {"image": image})
         self.assertEqual(response.status_code, 502)
         mock_identify.assert_called_once()
+
+
+class WeedSightingModelTests(TestCase):
+    def test_sighting_preserves_identification_snapshot_and_relations(self):
+        user = get_user_model().objects.create_user("ranger@example.com")
+        bushland = BushlandArea.objects.create(
+            source_object_id=42,
+            site_number=7,
+            name="Example Reserve",
+            geometry={"type": "Polygon", "coordinates": []},
+            bbox_west=115.8,
+            bbox_south=-32.0,
+            bbox_east=115.9,
+            bbox_north=-31.9,
+            source_url="https://data.example/bushland/42",
+        )
+
+        sighting = WeedSighting.objects.create(
+            model_id="weedscan19_epoch_300",
+            model_top_id="24",
+            candidates=[{"scientific_name": "Cryptostegia grandiflora", "confidence": 0.8}],
+            top_scientific_name="Cryptostegia grandiflora",
+            top_confidence=0.8,
+            confirmed_species="Cryptostegia grandiflora",
+            bushland_area=bushland,
+            reported_by=user,
+            abundance=WeedSighting.Abundance.PATCH,
+            latitude=-31.95,
+            longitude=115.86,
+        )
+
+        self.assertEqual(bushland.weed_sightings.get(), sighting)
+        self.assertEqual(user.weed_sightings.get(), sighting)
+        self.assertEqual(sighting.candidates[0]["confidence"], 0.8)
+
+    def test_database_rejects_invalid_confidence_and_coordinates(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            WeedSighting.objects.create(model_id="weedscan19_epoch_300", top_confidence=1.01)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            WeedSighting.objects.create(model_id="weedscan19_epoch_300", latitude=-90.1)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            WeedSighting.objects.create(model_id="weedscan19_epoch_300", longitude=180.1)
