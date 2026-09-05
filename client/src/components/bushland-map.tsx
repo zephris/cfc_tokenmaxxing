@@ -361,7 +361,10 @@ function MapOverlay({
       {event ? (
         <EventPreviewSheet event={event} onClose={onClose} />
       ) : bushland ? (
-        <article className="pointer-events-auto relative max-h-[70vh] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 text-card-foreground shadow-lg md:max-w-[380px]">
+        <article
+          className="pointer-events-auto relative max-h-[70vh] animate-in slide-in-from-right-8 fade-in overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 text-card-foreground shadow-lg duration-300 md:max-w-[380px]"
+          key={bushland.objectid}
+        >
           <CloseButton onClose={onClose} />
           <span className="inline-flex rounded-full bg-[#234D3B] px-2 py-1 text-xs font-medium text-white">
             BUSH FOREVER SITE {bushland.bf_sites}
@@ -412,8 +415,7 @@ function MapOverlay({
                       {sighting.species} reported
                     </p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {sighting.count}{" "}
-                      {sighting.count === 1 ? "report" : "reports"}
+                      {sighting.count} {sighting.count === 1 ? "report" : "reports"}
                     </p>
                   </li>
                 ))}
