@@ -96,8 +96,7 @@ function BushlandAreas({
       }}
       style={(feature) => {
         const properties = feature?.properties as
-          | BushlandProperties
-          | undefined;
+          BushlandProperties | undefined;
         const selected = properties?.objectid === selectedObjectId;
 
         return {
