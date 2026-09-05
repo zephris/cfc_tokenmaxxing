@@ -10,7 +10,14 @@ export type BushlandProperties = {
   name: string;
   description: string;
   sourceUrl: string;
+  reportedSightings?: ReportedWeedSighting[];
   distanceMetres?: number;
+};
+
+export type ReportedWeedSighting = {
+  date: string;
+  species: string;
+  count: number;
 };
 
 export type BushlandCollection = FeatureCollection<

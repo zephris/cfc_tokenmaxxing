@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
 from .models import BushlandArea
+from api.weeds.models import WeedSighting
 
 
 def _parse_bbox(raw_bbox):
@@ -42,6 +43,23 @@ def _distance_to_bbox(area, longitude, latitude):
     return longitude_distance**2 + latitude_distance**2
 
 
+def _reported_sightings(area):
+    sightings = WeedSighting.objects.filter(bushland_area=area).order_by(
+        "-observed_on", "-identified_at"
+    )[:3]
+    return [
+        {
+            "date": (sighting.observed_on or sighting.identified_at.date()).isoformat(),
+            "species": sighting.confirmed_species
+            or sighting.top_common_name
+            or sighting.top_scientific_name
+            or "Unidentified weed",
+            "count": 1,
+        }
+        for sighting in sightings
+    ]
+
+
 @api_view(["GET"])
 def bushland_areas(request):
     try:
@@ -72,6 +90,7 @@ def bushland_areas(request):
                     "name": area.name,
                     "description": area.description,
                     "sourceUrl": area.source_url,
+                    "reportedSightings": _reported_sightings(area),
                 },
                 "geometry": area.geometry,
             }
@@ -124,6 +143,7 @@ def nearest_bushland(request):
             "name": area.name,
             "description": area.description,
             "sourceUrl": area.source_url,
+            "reportedSightings": _reported_sightings(area),
             "bounds": [
                 area.bbox_west,
                 area.bbox_south,
