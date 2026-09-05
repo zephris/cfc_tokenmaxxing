@@ -33,6 +33,7 @@ class WeedSighting(models.Model):
         on_delete=models.SET_NULL,
         related_name="weed_sightings",
     )
+
     observed_on = models.DateField(null=True, blank=True)
     abundance = models.CharField(max_length=20, choices=Abundance.choices, blank=True)
     latitude = models.FloatField(null=True, blank=True)
@@ -45,10 +46,8 @@ class WeedSighting(models.Model):
     def ticket_id(self) -> str:
         if not self.pk:
             return ""
-        if self.identified_at:
-            date_str = self.identified_at.strftime("%Y%m%d")
-            return f"TKT-{date_str}-{self.pk:04d}"
-        return f"TKT-{self.pk:06d}"
+        date_str = self.identified_at.strftime("%Y%m%d")
+        return f"TKT-{date_str}-{self.pk:04d}"
 
     class Meta:
         db_table = "weed_sighting"

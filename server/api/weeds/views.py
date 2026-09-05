@@ -5,6 +5,7 @@ from uuid import uuid4
 from django.db import close_old_connections
 from django.http import StreamingHttpResponse
 from django.utils import timezone
+from django.views.decorators.http import require_GET
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -146,7 +147,9 @@ def _sighting_event(sighting):
     }
 
 
-@api_view(["GET"])
+# Plain Django view (not @api_view): DRF content negotiation rejects
+# EventSource's "Accept: text/event-stream" header with a 406.
+@require_GET
 def sighting_stream(request):
     def events():
         cursor = timezone.now()
