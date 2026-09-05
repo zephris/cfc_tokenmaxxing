@@ -15,7 +15,14 @@ const ABUNDANCE_OPTIONS: { value: Abundance; label: string }[] = [
   { value: "widespread", label: "Widespread" },
 ];
 
+export function generateTicketId(): string {
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `TKT-${dateStr}-${randomStr}`;
+}
+
 export interface ReportDetails {
+  ticketId?: string;
   bushlandId: string;
   bushlandName?: string;
   observationDate: string; // yyyy-mm-dd
@@ -34,6 +41,7 @@ export interface ReportSightingFormProps {
   photoPreviewUrl: string | null;
   /** Pre-selects a bushland (e.g. arriving from a Bushland Profile's "Report a weed here"). */
   initialBushlandId?: string;
+  isSubmitting?: boolean;
   onSubmit: (details: ReportDetails) => void;
   onBack: () => void;
   className?: string;
@@ -53,6 +61,7 @@ export function ReportSightingForm({
   aiConfidenceLabel,
   photoPreviewUrl,
   initialBushlandId,
+  isSubmitting,
   onSubmit,
   onBack,
   className,
@@ -62,9 +71,7 @@ export function ReportSightingForm({
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [bushlandId, setBushlandId] = useState<string>(
-    initialBushlandId ?? "",
-  );
+  const [bushlandId, setBushlandId] = useState<string>(initialBushlandId ?? "");
   const [hasSelectedBushland, setHasSelectedBushland] = useState(
     Boolean(initialBushlandId),
   );
@@ -75,16 +82,17 @@ export function ReportSightingForm({
   const nearbyBushlands = useNearbyBushlands(coords);
 
   const bushlandOptions: NearbyBushland[] = nearbyBushlands.data ?? [];
-  const displayedBushlands = bushlandOptions.length > 0
-    ? bushlandOptions
-    : BUSHLAND_FIXTURES.slice(0, 4).map((bushland, index) => ({
-        objectid: index,
-        siteNumber: index,
-        name: bushland.name,
-        description: bushland.summary,
-        sourceUrl: "",
-        distance: 0,
-      }));
+  const displayedBushlands =
+    bushlandOptions.length > 0
+      ? bushlandOptions
+      : BUSHLAND_FIXTURES.slice(0, 4).map((bushland, index) => ({
+          objectid: index,
+          siteNumber: index,
+          name: bushland.name,
+          description: bushland.summary,
+          sourceUrl: "",
+          distance: 0,
+        }));
 
   const requestLocation = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -106,10 +114,6 @@ export function ReportSightingForm({
   };
 
   useEffect(() => {
-    requestLocation();
-  }, []);
-
-  useEffect(() => {
     if (!hasSelectedBushland && displayedBushlands[0]) {
       setBushlandId(String(displayedBushlands[0].objectid));
     }
@@ -117,8 +121,10 @@ export function ReportSightingForm({
 
   const handleSubmit = () => {
     onSubmit({
+      ticketId: generateTicketId(),
       bushlandId,
-      bushlandName: bushlandId === "manual" ? manualBushlandName.trim() : undefined,
+      bushlandName:
+        bushlandId === "manual" ? manualBushlandName.trim() : undefined,
       observationDate,
       abundance,
       latitude: coords?.latitude,
@@ -239,26 +245,81 @@ export function ReportSightingForm({
         </div>
       </fieldset>
 
-      <div className="flex flex-col gap-2 rounded-md border border-input p-4">
-        <p className="text-sm font-medium text-foreground">
-          Location (optional)
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Helps place this sighting on the map for other bushcare volunteers.
-          You can submit without it.
-        </p>
+      <div className="flex flex-col gap-3 rounded-md border border-input p-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Location & nearby bushlands (optional)
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Use your location to discover and select bushlands near you.
+          </p>
+        </div>
 
-        <div aria-live="polite">
+        <div aria-live="polite" className="flex flex-col gap-2">
           {locationStatus === "granted" && coords && (
-            <p className="flex items-center gap-2 text-sm text-foreground">
-              <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
-              {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
-            </p>
+            <div className="flex flex-col gap-2">
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <MapPin
+                  className="h-3.5 w-3.5 text-primary"
+                  aria-hidden="true"
+                />
+                Reported location: {coords.latitude.toFixed(5)},{" "}
+                {coords.longitude.toFixed(5)}
+              </p>
+
+              {nearbyBushlands.isPending ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                  Finding bushlands near your reported location…
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-xs font-medium text-foreground">
+                    Bushlands near your reported location:
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {displayedBushlands.map((bushland) => {
+                      const isSelected =
+                        bushlandId === String(bushland.objectid);
+                      return (
+                        <button
+                          key={bushland.objectid}
+                          type="button"
+                          onClick={() => {
+                            setHasSelectedBushland(true);
+                            setBushlandId(String(bushland.objectid));
+                          }}
+                          className={cn(
+                            "flex flex-col items-start rounded-md border p-2.5 text-left text-xs transition-colors",
+                            isSelected
+                              ? "border-primary bg-primary/10 font-medium text-foreground ring-1 ring-primary"
+                              : "border-input bg-card text-muted-foreground hover:border-primary/50",
+                          )}
+                        >
+                          <span className="font-semibold text-foreground">
+                            {bushland.name}
+                          </span>
+                          {bushland.description && (
+                            <span className="mt-0.5 line-clamp-1 text-muted-foreground">
+                              {bushland.description}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           {locationStatus === "denied" && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPinOff className="h-4 w-4" aria-hidden="true" />
-              Location permission was denied — you can still submit without it.
+              Location permission was denied — you can still select a bushland
+              manually.
             </p>
           )}
           {locationStatus === "unavailable" && (
@@ -274,9 +335,7 @@ export function ReportSightingForm({
           variant="outline"
           size="sm"
           onClick={requestLocation}
-          disabled={
-            locationStatus === "requesting" || locationStatus === "granted"
-          }
+          disabled={locationStatus === "requesting"}
           className="self-start"
         >
           {locationStatus === "requesting" ? (
@@ -285,12 +344,12 @@ export function ReportSightingForm({
                 className="mr-2 h-3.5 w-3.5 animate-spin"
                 aria-hidden="true"
               />
-              Getting location…
+              Finding nearby bushlands…
             </>
           ) : locationStatus === "granted" ? (
-            "Location added"
+            "Update nearby bushlands"
           ) : (
-            "Use my location"
+            "Find bushlands near my location"
           )}
         </Button>
       </div>
@@ -317,11 +376,28 @@ export function ReportSightingForm({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={handleSubmit}>
-          <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
-          Create demo report
+        <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2
+                className="mr-2 h-4 w-4 animate-spin"
+                aria-hidden="true"
+              />
+              Submitting report…
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              Submit report
+            </>
+          )}
         </Button>
-        <Button type="button" variant="ghost" onClick={onBack}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onBack}
+          disabled={isSubmitting}
+        >
           Back to results
         </Button>
       </div>

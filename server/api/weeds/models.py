@@ -41,6 +41,15 @@ class WeedSighting(models.Model):
     identified_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def ticket_id(self) -> str:
+        if not self.pk:
+            return ""
+        if self.identified_at:
+            date_str = self.identified_at.strftime("%Y%m%d")
+            return f"TKT-{date_str}-{self.pk:04d}"
+        return f"TKT-{self.pk:06d}"
+
     class Meta:
         db_table = "weed_sighting"
         ordering = ["-identified_at"]
@@ -66,4 +75,4 @@ class WeedSighting(models.Model):
         ]
 
     def __str__(self):
-        return self.confirmed_species or self.top_scientific_name or f"Sighting {self.pk}"
+        return f"{self.ticket_id} ({self.confirmed_species or self.top_scientific_name or 'Unknown'})"
