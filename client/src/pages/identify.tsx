@@ -30,7 +30,8 @@ type FlowStep = "capture" | "results" | "report" | "success";
 /** What the user confirmed: a specific candidate, or "unidentified" (no
  * confident match, or the user picked "none of these"). */
 type ConfirmedOutcome =
-  { kind: "candidate"; candidate: WeedCandidate } | { kind: "unidentified" };
+  | { kind: "candidate"; candidate: WeedCandidate }
+  | { kind: "unidentified" };
 
 function subjectLabelFor(outcome: ConfirmedOutcome): string {
   return outcome.kind === "candidate"
