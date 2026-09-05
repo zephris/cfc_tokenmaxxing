@@ -11,6 +11,7 @@ export type MapEvent = {
   address: string;
   summary: string;
   availability: string;
+  imagePath: string;
   href: string;
   position: [number, number];
 };

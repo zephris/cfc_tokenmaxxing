@@ -23,6 +23,7 @@ class EventListTests(TestCase):
             address="2 Delhi Street, West Perth",
             summary="Learn about seed genetics.",
             cost="Free",
+            image_path="/Images/events/SeedGenEvent.jpg",
             latitude=-31.9455721,
             longitude=115.846509,
             source_url="https://www.bushlandperth.org.au/event/seed-genetics-and-restoration/",
@@ -34,6 +35,7 @@ class EventListTests(TestCase):
         event = response.json()["events"][0]
         self.assertEqual(event["id"], "20567")
         self.assertEqual(event["timeLabel"], "18:00-20:00")
+        self.assertEqual(event["imagePath"], "/Images/events/SeedGenEvent.jpg")
         self.assertEqual(event["position"], [-31.9455721, 115.846509])
 
     def test_excludes_finished_events(self):
@@ -69,6 +71,7 @@ class EventDetailTests(TestCase):
             address="2 Delhi Street, West Perth",
             summary="Learn about seed genetics.",
             cost="Free",
+            image_path="/Images/events/SeedGenEvent.jpg",
             latitude=-31.9455721,
             longitude=115.846509,
             source_url="https://www.bushlandperth.org.au/event/seed-genetics-and-restoration/",
@@ -79,6 +82,7 @@ class EventDetailTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["id"], "20567")
         self.assertEqual(response.json()["title"], "Seed Genetics and Restoration")
+        self.assertEqual(response.json()["imagePath"], "/Images/events/SeedGenEvent.jpg")
         self.assertEqual(response.json()["href"], "https://www.bushlandperth.org.au/event/seed-genetics-and-restoration/")
 
     def test_returns_404_for_unknown_source_id(self):

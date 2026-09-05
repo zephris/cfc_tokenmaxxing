@@ -243,6 +243,7 @@ export default function ExplorePage() {
                   }
                   event={event}
                   key={event.id}
+                  showImage
                 />
               ))}
             </div>

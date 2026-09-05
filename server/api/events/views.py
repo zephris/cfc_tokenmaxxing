@@ -22,6 +22,7 @@ def _serialise_event(event):
         "address": event.address,
         "summary": event.summary,
         "availability": event.cost,
+        "imagePath": event.image_path,
         "href": event.source_url,
         "position": [event.latitude, event.longitude],
     }

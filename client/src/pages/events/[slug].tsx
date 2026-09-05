@@ -1,5 +1,6 @@
 import { Calendar, Check, ExternalLink, Loader2, MapPin } from "lucide-react";
 import Head from "next/head";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { useState } from "react";
 
@@ -75,9 +76,22 @@ export default function EventDetailsPage() {
       </Head>
       <AppShell title="Event details" activeTab="explore" backHref={backHref}>
         <article className="flex flex-col gap-5">
-          <div className="flex h-40 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
-            <Calendar className="h-8 w-8" aria-hidden="true" />
-          </div>
+          {event.imagePath ? (
+            <div className="relative h-64 overflow-hidden rounded-xl bg-secondary">
+              <Image
+                fill
+                priority
+                alt={event.title}
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, 672px"
+                src={event.imagePath}
+              />
+            </div>
+          ) : (
+            <div className="flex h-64 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+              <Calendar className="h-8 w-8" aria-hidden="true" />
+            </div>
+          )}
 
           <header>
             <span className="w-fit rounded-full bg-highlight/20 px-2 py-0.5 text-xs font-medium text-highlight-foreground">
