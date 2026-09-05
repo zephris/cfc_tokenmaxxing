@@ -17,7 +17,6 @@ export function getMockWeedIdentification(): WeedIdentificationResponse {
   return {
     request_id: "mock-request-id",
     model_id: "mock-model-v0",
-    top_id: "mock-top-id",
     disclaimer: DISCLAIMER,
     is_mock: true,
     candidates: [
@@ -70,7 +69,6 @@ export function getMockUnknownWeedIdentification(): WeedIdentificationResponse {
   return {
     request_id: "mock-request-id-unknown",
     model_id: "mock-model-v0",
-    top_id: null,
     disclaimer: DISCLAIMER,
     is_mock: true,
     candidates: [],

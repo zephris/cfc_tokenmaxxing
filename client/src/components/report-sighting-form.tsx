@@ -37,7 +37,11 @@ export interface ReportSightingFormProps {
 }
 
 type LocationStatus =
-  "idle" | "requesting" | "granted" | "denied" | "unavailable";
+  | "idle"
+  | "requesting"
+  | "granted"
+  | "denied"
+  | "unavailable";
 
 const NOTES_MAX_LENGTH = 500;
 
