@@ -296,6 +296,13 @@ export function WeedResults({
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
+      {data.is_mock && (
+        <p className="rounded-md bg-accent px-3 py-2 text-xs text-accent-foreground">
+          Development mode: showing example data because the identification
+          service isn&apos;t connected yet.
+        </p>
+      )}
+
       <div className="flex flex-col gap-1">
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />

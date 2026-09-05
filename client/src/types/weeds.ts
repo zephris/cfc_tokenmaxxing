@@ -50,4 +50,11 @@ export interface WeedIdentificationResponse {
   /** Empty array represents "no confident match" (unknown plant). */
   candidates: WeedCandidate[];
   disclaimer: string;
+  /**
+   * Present only when `useIdentifyWeed`'s development mock fallback served
+   * this response because the backend was unreachable (see
+   * `client/src/lib/weeds-mock.ts`). Real backend responses never include
+   * this field.
+   */
+  is_mock?: boolean;
 }
