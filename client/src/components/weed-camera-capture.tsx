@@ -14,11 +14,7 @@ interface WeedCameraCaptureProps {
 }
 
 type CameraStatus =
-  | "checking"
-  | "ready"
-  | "denied"
-  | "unavailable"
-  | "unsupported";
+  "checking" | "ready" | "denied" | "unavailable" | "unsupported";
 
 function confidenceLabel(percent: number) {
   if (percent >= 80) return "High";
