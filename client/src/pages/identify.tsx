@@ -1,70 +1,283 @@
-import { useState } from "react";
+import { CheckCircle2 } from "lucide-react";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 
+import { AppShell } from "@/components/app-shell";
 import {
-  WeedCameraCapture,
-  WeedPrediction,
-} from "@/components/weed-camera-capture";
-import { useUploadWeedImage, WeedCandidate } from "@/hooks/weeds";
-import { cn } from "@/lib/utils";
+  type ReportDetails,
+  ReportSightingForm,
+} from "@/components/report-sighting-form";
+import { Button } from "@/components/ui/button";
+import { WeedCapture } from "@/components/weed-capture";
+import {
+  type SelectedCandidate,
+  WeedResults,
+  type WeedResultsStatus,
+} from "@/components/weed-results";
+import { useIdentifyWeed } from "@/hooks/weeds";
+import { BUSHLAND_FIXTURES, UNSURE_BUSHLAND_ID } from "@/lib/bushland-fixtures";
+import type { WeedCandidate } from "@/types/weeds";
 
-// Maps the raw /api/weeds/identify/ shape onto WeedCameraCapture's display props.
-function toPrediction(candidate: WeedCandidate): WeedPrediction {
-  return {
-    commonName: candidate.common_name,
-    scientificName: candidate.scientific_name,
-    confidencePercent: Math.round(candidate.confidence * 100),
-  };
+const ABUNDANCE_LABELS: Record<ReportDetails["abundance"], string> = {
+  single: "Single plant",
+  patch: "Small patch",
+  widespread: "Widespread",
+};
+
+type FlowStep = "capture" | "results" | "report" | "success";
+
+/** What the user confirmed: a specific candidate, or "unidentified" (no
+ * confident match, or the user picked "none of these"). */
+type ConfirmedOutcome =
+  | { kind: "candidate"; candidate: WeedCandidate }
+  | { kind: "unidentified" };
+
+function subjectLabelFor(outcome: ConfirmedOutcome): string {
+  return outcome.kind === "candidate"
+    ? `${outcome.candidate.common_name} (${outcome.candidate.scientific_name})`
+    : "Unidentified plant";
+}
+
+/** One line summarising AI confidence + that a human confirmed/rejected it. */
+function aiConfidenceLabelFor(outcome: ConfirmedOutcome): string {
+  if (outcome.kind === "candidate") {
+    const { confidence, confidence_level } = outcome.candidate;
+    return `${Math.round(confidence * 100)}% AI confidence (${confidence_level}) — species confirmed by you`;
+  }
+  return "No AI match confirmed — reported for human review";
+}
+
+function bushlandLabelFor(bushlandId: string): string {
+  if (bushlandId === UNSURE_BUSHLAND_ID)
+    return "Not sure / outside listed area";
+  const bushland = BUSHLAND_FIXTURES.find((b) => b.slug === bushlandId);
+  return bushland ? `${bushland.name} — ${bushland.suburb}` : bushlandId;
 }
 
 export default function IdentifyPage() {
-  const [error, setError] = useState<string | null>(null);
-  const { mutate, data, isPending } = useUploadWeedImage({
-    onError: () => setError("Couldn't identify that photo. Try again."),
-    onSuccess: () => setError(null),
-  });
+  const router = useRouter();
+  // Arriving from a Bushland Profile's "Report a weed here" link, e.g.
+  // /identify?bushland=bold-park, pre-selects that bushland in the report form.
+  const bushlandFromQuery =
+    typeof router.query.bushland === "string"
+      ? router.query.bushland
+      : undefined;
 
-  const handleCapture = (file: File) => {
-    setError(null);
-    mutate(file);
+  const [step, setStep] = useState<FlowStep>("capture");
+  // Bumping this remounts <WeedCapture>, clearing its internal file/preview
+  // state — simpler than exposing an imperative reset API from the component.
+  const [captureKey, setCaptureKey] = useState(0);
+  const [selectedRank, setSelectedRank] = useState<SelectedCandidate | null>(
+    null,
+  );
+  const [confirmedOutcome, setConfirmedOutcome] =
+    useState<ConfirmedOutcome | null>(null);
+  const [reportDetails, setReportDetails] = useState<ReportDetails | null>(
+    null,
+  );
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+
+  const identifyMutation = useIdentifyWeed();
+
+  // Revoke the captured-photo preview URL whenever it changes or the page unmounts.
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  const handleSubmit = (file: File) => {
+    setStep("results");
+    setSelectedRank(null);
+    setPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return URL.createObjectURL(file);
+    });
+    identifyMutation.mutate({ image: file });
   };
 
-  const topCandidate = data?.candidates[0];
+  const handleRetry = () => {
+    identifyMutation.reset();
+    setSelectedRank(null);
+    setConfirmedOutcome(null);
+    setReportDetails(null);
+    setPhotoPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+    setCaptureKey((key) => key + 1);
+    setStep("capture");
+  };
+
+  const handleConfirm = () => {
+    // "Report as unidentified" for the empty-candidates state doesn't
+    // require a selection first.
+    const candidates = identifyMutation.data?.candidates ?? [];
+    if (candidates.length === 0 || selectedRank === "none") {
+      setConfirmedOutcome({ kind: "unidentified" });
+      setStep("report");
+      return;
+    }
+
+    const candidate = candidates.find((c) => c.rank === selectedRank);
+    if (!candidate) return;
+    setConfirmedOutcome({ kind: "candidate", candidate });
+    setStep("report");
+  };
+
+  const handleBackToResults = () => {
+    setStep("results");
+  };
+
+  const handleSubmitReport = (details: ReportDetails) => {
+    setReportDetails(details);
+    setStep("success");
+  };
+
+  const resultsStatus: WeedResultsStatus = identifyMutation.isPending
+    ? "pending"
+    : identifyMutation.isError
+      ? "error"
+      : identifyMutation.isSuccess
+        ? "success"
+        : "idle";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-4 p-5">
-      <div className="flex flex-col gap-[2px]">
-        <h1 className="text-[22px] font-bold text-foreground">
-          Identify a weed
-        </h1>
-        <p className="text-[11px] text-muted-foreground">AI field assistant</p>
-      </div>
+    <>
+      <Head>
+        <title>Identify a weed</title>
+      </Head>
+      <AppShell
+        title="Identify a weed"
+        subtitle="AI field assistant"
+        activeTab="identify"
+      >
+        {step === "capture" && (
+          <WeedCapture key={captureKey} onSubmit={handleSubmit} />
+        )}
 
-      <WeedCameraCapture
-        onCapture={handleCapture}
-        prediction={topCandidate ? toPrediction(topCandidate) : undefined}
-      />
+        {step === "results" && (
+          <WeedResults
+            status={resultsStatus}
+            data={identifyMutation.data}
+            errorMessage={
+              identifyMutation.isError
+                ? "We couldn't reach the identification service. Please check your connection and try again."
+                : null
+            }
+            selectedRank={selectedRank}
+            onSelectCandidate={setSelectedRank}
+            onConfirm={handleConfirm}
+            onRetry={handleRetry}
+          />
+        )}
 
-      {isPending && (
-        <p className="text-sm text-muted-foreground">Identifying…</p>
-      )}
-      {error && <p className={cn("text-sm text-destructive")}>{error}</p>}
+        {step === "report" && confirmedOutcome && (
+          <ReportSightingForm
+            subjectLabel={subjectLabelFor(confirmedOutcome)}
+            aiConfidenceLabel={aiConfidenceLabelFor(confirmedOutcome)}
+            photoPreviewUrl={photoPreviewUrl}
+            initialBushlandId={bushlandFromQuery}
+            onSubmit={handleSubmitReport}
+            onBack={handleBackToResults}
+          />
+        )}
 
-      {data && data.candidates.length > 1 && (
-        <ul className="flex flex-col gap-2">
-          {data.candidates.slice(1).map((candidate, i) => (
-            <li
-              key={`${candidate.scientific_name}-${i}`}
-              className="rounded-[14px] border border-border bg-white p-3 text-sm"
+        {step === "success" && confirmedOutcome && reportDetails && (
+          <div
+            role="status"
+            className="flex flex-col gap-4 rounded-md border border-primary/30 bg-primary/5 p-4"
+          >
+            <div>
+              <p className="flex items-center gap-2 font-medium text-primary">
+                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                Demo report created
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This demonstration report is stored only for the current session
+                and has not been submitted to an official reporting service.
+                Persisting real sightings depends on the backend WeedScan
+                integration (issue #9).
+              </p>
+            </div>
+
+            {photoPreviewUrl && (
+              <div className="overflow-hidden rounded-md border border-input bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photoPreviewUrl}
+                  alt="The photo submitted for this sighting"
+                  className="max-h-56 w-full object-contain"
+                />
+              </div>
+            )}
+
+            <dl className="flex flex-col gap-1 text-sm">
+              <div>
+                <dt className="inline text-muted-foreground">Species: </dt>
+                <dd className="inline text-foreground">
+                  {subjectLabelFor(confirmedOutcome)}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline text-muted-foreground">
+                  AI confidence:{" "}
+                </dt>
+                <dd className="inline text-foreground">
+                  {aiConfidenceLabelFor(confirmedOutcome)}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline text-muted-foreground">Bushland: </dt>
+                <dd className="inline text-foreground">
+                  {bushlandLabelFor(reportDetails.bushlandId)}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline text-muted-foreground">
+                  Date observed:{" "}
+                </dt>
+                <dd className="inline text-foreground">
+                  {reportDetails.observationDate}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline text-muted-foreground">Abundance: </dt>
+                <dd className="inline text-foreground">
+                  {ABUNDANCE_LABELS[reportDetails.abundance]}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline text-muted-foreground">Location: </dt>
+                <dd className="inline text-foreground">
+                  {reportDetails.latitude !== undefined &&
+                  reportDetails.longitude !== undefined
+                    ? `${reportDetails.latitude.toFixed(5)}, ${reportDetails.longitude.toFixed(5)}`
+                    : "Not provided"}
+                </dd>
+              </div>
+              {reportDetails.notes && (
+                <div>
+                  <dt className="inline text-muted-foreground">Notes: </dt>
+                  <dd className="inline text-foreground">
+                    {reportDetails.notes}
+                  </dd>
+                </div>
+              )}
+            </dl>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleRetry}
+              className="self-start"
             >
-              {candidate.common_name} · {Math.round(candidate.confidence * 100)}
-              % ·{" "}
-              <span className="italic text-muted-foreground">
-                {candidate.scientific_name}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+              Identify another weed
+            </Button>
+          </div>
+        )}
+      </AppShell>
+    </>
   );
 }

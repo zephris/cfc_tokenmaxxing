@@ -26,4 +26,13 @@ class IdentifyWeedTests(TestCase):
         response = self.client.post("/api/weeds/identify/", {"image": image})
         self.assertEqual(response.status_code, 200)
         mock_identify.assert_called_once_with(b"bytes", "weed.jpg", "image/jpeg")
+        self.assertEqual(response.json()["candidates"][0]["rank"], 1)
+        self.assertEqual(response.json()["candidates"][0]["confidence_level"], "high")
         self.assertEqual(response.json()["candidates"][0]["scientific_name"], "Cryptostegia grandiflora")
+
+    @patch("api.weeds.views.weedscan_identify.identify", side_effect=TimeoutError)
+    def test_returns_bad_gateway_when_weedscan_times_out(self, mock_identify):
+        image = SimpleUploadedFile("weed.jpg", b"bytes", content_type="image/jpeg")
+        response = self.client.post("/api/weeds/identify/", {"image": image})
+        self.assertEqual(response.status_code, 502)
+        mock_identify.assert_called_once()

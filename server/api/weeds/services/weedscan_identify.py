@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 from http.cookiejar import CookieJar
+from urllib.error import HTTPError, URLError
 from urllib import request as urllib_request
 
 IDENTIFY_URL = "https://weedscan.org.au/Identify1"
@@ -29,8 +30,14 @@ class WeedScanResult:
 def identify(image_bytes: bytes, filename: str, content_type: str) -> WeedScanResult:
     jar = CookieJar()
     opener = urllib_request.build_opener(urllib_request.HTTPCookieProcessor(jar))
-    landing = opener.open(IDENTIFY_URL, timeout=30).read().decode()
-    token = TOKEN_RE.search(landing).group(1)
+    try:
+        landing = opener.open(IDENTIFY_URL, timeout=30).read().decode("utf-8", errors="replace")
+    except (HTTPError, URLError, TimeoutError) as error:
+        raise OSError("WeedScan landing page request failed") from error
+    token_match = TOKEN_RE.search(landing)
+    if token_match is None:
+        raise ValueError("WeedScan antiforgery token was not found")
+    token = token_match.group(1)
 
     boundary = "----WeedScanBoundary"
     body = _multipart(boundary, token, image_bytes, filename, content_type)
@@ -43,7 +50,10 @@ def identify(image_bytes: bytes, filename: str, content_type: str) -> WeedScanRe
             "Referer": IDENTIFY_URL,
         },
     )
-    html = opener.open(req, timeout=60).read().decode()
+    try:
+        html = opener.open(req, timeout=60).read().decode("utf-8", errors="replace")
+    except (HTTPError, URLError, TimeoutError) as error:
+        raise OSError("WeedScan upload request failed") from error
     return _parse(html)
 
 
@@ -61,6 +71,7 @@ def _parse(html: str) -> WeedScanResult:
     candidates = []
     for raw_name, pct in BOX_RE.findall(html):
         text = TAG_RE.sub("", raw_name).strip()
+        text = re.sub(r"\s+", " ", text)
         match = re.match(r"^(.*?)\s*\((.*)\)$", text)
         if match:
             common, scientific = match.group(1).strip(), match.group(2).strip()
