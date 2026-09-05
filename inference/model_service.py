@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +9,8 @@ from urllib.request import urlopen
 import numpy as np
 import onnxruntime as ort
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 MODEL_URL = os.environ.get(
     "WEEDSCAN_MODEL_URL",
@@ -31,21 +34,31 @@ class Label:
 
 class WeedScanModel:
     def __init__(self) -> None:
+        logger.info("Preparing model directory at %s", MODEL_DIR)
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        logger.info("Ensuring model file is present at %s", MODEL_PATH)
         _download_if_missing(MODEL_URL, MODEL_PATH)
+        logger.info("Ensuring labels file is present at %s", LABELS_PATH)
         _download_if_missing(LABELS_URL, LABELS_PATH)
+        logger.info("Loading species labels from %s", LABELS_PATH)
         self.labels = _load_labels(LABELS_PATH)
+        logger.info("Loaded %d species labels", len(self.labels))
+        logger.info("Initializing ONNX Runtime session for %s", MODEL_PATH.name)
         self.session = ort.InferenceSession(
             str(MODEL_PATH), providers=["CPUExecutionProvider"]
         )
         self.input_name = self.session.get_inputs()[0].name
+        logger.info("Model ready, input tensor name is '%s'", self.input_name)
 
     def predict(self, image_bytes: bytes, limit: int = 5) -> list[dict]:
+        logger.info("Preprocessing uploaded image (%d bytes)", len(image_bytes))
         tensor = _preprocess(image_bytes)
+        logger.info("Running inference on preprocessed tensor of shape %s", tensor.shape)
         output = np.asarray(self.session.run(None, {self.input_name: tensor})[0]).reshape(-1)
+        logger.info("Computing class probabilities from raw model output")
         probabilities = _probabilities(output)
         indices = np.argsort(probabilities)[::-1][:limit]
-        return [
+        candidates = [
             {
                 "class_id": int(index),
                 "scientific_name": self.labels[index].scientific_name
@@ -57,15 +70,24 @@ class WeedScanModel:
             }
             for index in indices
         ]
+        logger.info(
+            "Ranked top %d candidates: %s",
+            len(candidates),
+            [(c["scientific_name"], round(c["confidence"], 4)) for c in candidates],
+        )
+        return candidates
 
 
 def _download_if_missing(url: str, path: Path) -> None:
     if path.exists():
+        logger.info("Found existing file at %s, skipping download", path)
         return
+    logger.info("Downloading %s to %s", url, path)
     temporary_path = path.with_suffix(f"{path.suffix}.download")
     with urlopen(url, timeout=120) as response, temporary_path.open("wb") as output:
         output.write(response.read())
     temporary_path.replace(path)
+    logger.info("Download complete: %s", path)
 
 
 def _load_labels(path: Path) -> list[Label]:
