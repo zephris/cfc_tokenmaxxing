@@ -11,6 +11,60 @@ export interface IdentifyWeedVariables {
   longitude?: number;
 }
 
+export interface ReportSightingVariables {
+  bushlandId?: number;
+  observedOn: string;
+  abundance: string;
+  latitude?: number;
+  longitude?: number;
+  notes?: string;
+  confirmedSpecies: string;
+  topScientificName?: string;
+  topCommonName?: string;
+  topConfidence?: number;
+  modelId?: string;
+}
+
+export interface ReportSightingResponse {
+  id: number;
+  ticket_id: string;
+  confirmed_species: string;
+  observed_on: string | null;
+  abundance: string;
+  created_at: string;
+}
+
+export const useReportSighting = (
+  args?: Omit<
+    UseMutationOptions<
+      ReportSightingResponse,
+      unknown,
+      ReportSightingVariables
+    >,
+    "mutationFn"
+  >,
+) => {
+  return useMutation({
+    ...args,
+    mutationFn: async (variables: ReportSightingVariables) => {
+      const res = await api.post<ReportSightingResponse>("/weeds/report/", {
+        bushland_id: variables.bushlandId,
+        observed_on: variables.observedOn,
+        abundance: variables.abundance,
+        latitude: variables.latitude,
+        longitude: variables.longitude,
+        notes: variables.notes,
+        confirmed_species: variables.confirmedSpecies,
+        top_scientific_name: variables.topScientificName,
+        top_common_name: variables.topCommonName,
+        top_confidence: variables.topConfidence,
+        model_id: variables.modelId,
+      });
+      return res.data;
+    },
+  });
+};
+
 /**
  * Backend for `POST /api/weeds/identify/` (issue #9) isn't implemented yet.
  * In non-production builds, if the real request can't reach the server at

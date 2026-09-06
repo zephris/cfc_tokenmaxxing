@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import {
-  generateTicketId,
   type ReportDetails,
   ReportSightingForm,
 } from "@/components/report-sighting-form";
@@ -16,7 +15,7 @@ import {
   WeedResults,
   type WeedResultsStatus,
 } from "@/components/weed-results";
-import { useIdentifyWeed, useSubmitWeedReport } from "@/hooks/weeds";
+import { useIdentifyWeed, useReportSighting } from "@/hooks/weeds";
 import { BUSHLAND_FIXTURES, UNSURE_BUSHLAND_ID } from "@/lib/bushland-fixtures";
 import type { WeedCandidate } from "@/types/weeds";
 
@@ -79,7 +78,7 @@ export default function IdentifyPage() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
 
   const identifyMutation = useIdentifyWeed();
-  const reportMutation = useSubmitWeedReport();
+  const reportMutation = useReportSighting();
 
   // Revoke the captured-photo preview URL whenever it changes or the page unmounts.
   useEffect(() => {
@@ -132,41 +131,44 @@ export default function IdentifyPage() {
   };
 
   const handleSubmitReport = (details: ReportDetails) => {
-    const topCandidate =
-      confirmedOutcome?.kind === "candidate"
-        ? confirmedOutcome.candidate
+    // The bushland select stores fixture indices as "0"-"3" when no real
+    // nearby list is available (no location) — only forward numeric IDs
+    // that came from the real backend list (see ReportSightingForm).
+    const bushlandId =
+      details.bushlandId !== "manual" &&
+      details.bushlandId !== UNSURE_BUSHLAND_ID &&
+      /^\d+$/.test(details.bushlandId)
+        ? Number(details.bushlandId)
         : undefined;
 
     reportMutation.mutate(
       {
-        bushlandId: details.bushlandId,
-        bushlandName: details.bushlandName,
-        observationDate: details.observationDate,
+        bushlandId,
+        observedOn: details.observationDate,
         abundance: details.abundance,
         latitude: details.latitude,
         longitude: details.longitude,
         notes: details.notes,
         confirmedSpecies: confirmedOutcome
           ? subjectLabelFor(confirmedOutcome)
-          : undefined,
-        candidates: identifyMutation.data?.candidates,
+          : "",
+        topScientificName:
+          confirmedOutcome?.kind === "candidate"
+            ? confirmedOutcome.candidate.scientific_name
+            : undefined,
+        topCommonName:
+          confirmedOutcome?.kind === "candidate"
+            ? confirmedOutcome.candidate.common_name
+            : undefined,
+        topConfidence:
+          confirmedOutcome?.kind === "candidate"
+            ? confirmedOutcome.candidate.confidence
+            : undefined,
         modelId: identifyMutation.data?.model_id,
-        topScientificName: topCandidate?.scientific_name,
-        topConfidence: topCandidate?.confidence,
       },
       {
         onSuccess: (data) => {
-          setReportDetails({
-            ...details,
-            ticketId: data.ticket_id,
-          });
-          setStep("success");
-        },
-        onError: () => {
-          setReportDetails({
-            ...details,
-            ticketId: details.ticketId || generateTicketId(),
-          });
+          setReportDetails({ ...details, ticketId: data.ticket_id });
           setStep("success");
         },
       },
@@ -212,15 +214,23 @@ export default function IdentifyPage() {
         )}
 
         {step === "report" && confirmedOutcome && (
-          <ReportSightingForm
-            subjectLabel={subjectLabelFor(confirmedOutcome)}
-            aiConfidenceLabel={aiConfidenceLabelFor(confirmedOutcome)}
-            photoPreviewUrl={photoPreviewUrl}
-            initialBushlandId={bushlandFromQuery}
-            isSubmitting={reportMutation.isPending}
-            onSubmit={handleSubmitReport}
-            onBack={handleBackToResults}
-          />
+          <>
+            <ReportSightingForm
+              subjectLabel={subjectLabelFor(confirmedOutcome)}
+              aiConfidenceLabel={aiConfidenceLabelFor(confirmedOutcome)}
+              photoPreviewUrl={photoPreviewUrl}
+              initialBushlandId={bushlandFromQuery}
+              isSubmitting={reportMutation.isPending}
+              onSubmit={handleSubmitReport}
+              onBack={handleBackToResults}
+            />
+            {reportMutation.isError ? (
+              <p role="alert" className="text-sm text-destructive">
+                We couldn't submit this report. Check your connection and try
+                again.
+              </p>
+            ) : null}
+          </>
         )}
 
         {step === "success" && confirmedOutcome && reportDetails && (
@@ -231,13 +241,11 @@ export default function IdentifyPage() {
             <div>
               <p className="flex items-center gap-2 font-medium text-primary">
                 <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Demo report created
+                Report submitted
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                This demonstration report is stored only for the current session
-                and has not been submitted to an official reporting service.
-                Persisting real sightings depends on the backend WeedScan
-                integration (issue #9).
+                Your sighting has been recorded and can now appear in the
+                bushland's recent sightings.
               </p>
             </div>
 

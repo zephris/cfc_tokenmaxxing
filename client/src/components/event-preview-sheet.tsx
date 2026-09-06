@@ -18,7 +18,10 @@ export function EventPreviewSheet({ event, onClose }: EventPreviewSheetProps) {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-4">
-      <div className="pointer-events-auto w-full max-w-md rounded-xl border border-border bg-card p-4 shadow-lg sm:max-w-2xl">
+      <div
+        className="pointer-events-auto w-full max-w-md rounded-xl border border-border bg-card p-4 shadow-lg duration-300 animate-in fade-in slide-in-from-right-8 sm:max-w-2xl"
+        key={event.id}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="w-full">
             <EventPreviewCard event={event} from="map" linkToDetails={false} />

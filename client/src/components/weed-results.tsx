@@ -298,7 +298,9 @@ export function WeedResults({
   if (!data) return null;
 
   const topCandidate = data.candidates[0];
-  const isUnknown = data.candidates.length === 0;
+  const hasNoConfidentMatch = !data.candidates.some(
+    (candidate) => candidate.confidence > 0.2,
+  );
   const isLowConfidence = topCandidate?.confidence_level === "low";
 
   return (
@@ -318,7 +320,7 @@ export function WeedResults({
         <p className="text-xs text-muted-foreground">{data.disclaimer}</p>
       </div>
 
-      {isUnknown ? (
+      {hasNoConfidentMatch ? (
         <div className="flex flex-col gap-3 rounded-md border border-input p-6 text-center">
           <p className="font-medium text-foreground">
             No confident match found

@@ -1,5 +1,7 @@
 from django.test import TestCase
 
+from api.weeds.models import WeedSighting
+
 from .models import BushlandArea
 
 
@@ -88,6 +90,34 @@ class BushlandAreasTests(TestCase):
             "River-side bushland information.",
         )
         self.assertEqual(response.json()["bounds"], [115.81, -31.99, 115.83, -31.97])
+
+    def test_returns_recent_reported_sightings_for_nearest_area(self):
+        area = BushlandArea.objects.create(
+            source_object_id=74,
+            site_number=402,
+            name="Pelican Point, Crawley",
+            geometry={"type": "Polygon", "coordinates": []},
+            bbox_west=115.81,
+            bbox_south=-31.99,
+            bbox_east=115.83,
+            bbox_north=-31.97,
+            source_url="https://catalogue.data.wa.gov.au/",
+        )
+        WeedSighting.objects.create(
+            model_id="weedscan19",
+            top_common_name="Bridal creeper",
+            bushland_area=area,
+            observed_on="2026-08-30",
+        )
+
+        response = self.client.get(
+            "/api/bushlands/nearest/?latitude=-31.98&longitude=115.82"
+        )
+
+        self.assertEqual(
+            response.json()["reportedSightings"],
+            [{"date": "2026-08-30", "species": "Bridal creeper", "count": 1}],
+        )
 
     def test_nearest_area_requires_valid_coordinates(self):
         response = self.client.get(

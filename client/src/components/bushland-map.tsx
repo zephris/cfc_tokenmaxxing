@@ -1,5 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { latLng, latLngBounds, Polygon as LeafletPolygon } from "leaflet";
-import { ExternalLink, LocateFixed, SlidersHorizontal, X } from "lucide-react";
+import {
+  CalendarDays,
+  ExternalLink,
+  LocateFixed,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Circle,
@@ -252,7 +259,6 @@ function MapOverlay({
   onLocationStatusChange,
 }: MapOverlayProps) {
   const map = useMap();
-  const hasRequestedLocation = useRef(false);
 
   useMapEvents({
     locationerror() {
@@ -268,22 +274,6 @@ function MapOverlay({
       map.flyTo(locationEvent.latlng, 13, { animate: true, duration: 0.8 });
     },
   });
-
-  useEffect(() => {
-    if (hasRequestedLocation.current) {
-      return;
-    }
-
-    hasRequestedLocation.current = true;
-    onClose();
-    onLocationStatusChange("locating");
-    map.locate({
-      enableHighAccuracy: true,
-      maximumAge: 30_000,
-      setView: false,
-      timeout: 10_000,
-    });
-  }, [map, onClose, onLocationStatusChange]);
 
   useEffect(() => {
     if (events.length > 0 && !currentLocation) {
@@ -371,7 +361,10 @@ function MapOverlay({
       {event ? (
         <EventPreviewSheet event={event} onClose={onClose} />
       ) : bushland ? (
-        <article className="pointer-events-auto relative rounded-lg border border-border bg-card p-4 text-card-foreground shadow-lg md:max-w-[380px]">
+        <article
+          className="pointer-events-auto relative max-h-[70vh] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 text-card-foreground shadow-lg duration-300 animate-in fade-in slide-in-from-right-8 md:max-w-[380px]"
+          key={bushland.objectid}
+        >
           <CloseButton onClose={onClose} />
           <span className="inline-flex rounded-full bg-[#234D3B] px-2 py-1 text-xs font-medium text-white">
             BUSH FOREVER SITE {bushland.bf_sites}
@@ -379,9 +372,61 @@ function MapOverlay({
           <h2 className="mt-2 pr-8 text-lg font-semibold leading-tight">
             {bushland.name}
           </h2>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            {bushland.description}
-          </p>
+          <section className="mt-4 border-t border-border pt-3">
+            <h3 className="text-xs font-semibold text-foreground">
+              Site Description
+            </h3>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              {bushland.description}
+            </p>
+          </section>
+          <section
+            className="mt-4 border-t border-border pt-3"
+            aria-labelledby="sighting-history-title"
+          >
+            <div className="flex items-center gap-2">
+              <CalendarDays
+                aria-hidden="true"
+                className="text-[#234D3B]"
+                size={14}
+                strokeWidth={1.8}
+              />
+              <h3
+                className="text-xs font-semibold text-foreground"
+                id="sighting-history-title"
+              >
+                Recent Sightings
+              </h3>
+            </div>
+            {bushland.reportedSightings?.length ? (
+              <ol className="mt-3 flex flex-col gap-2">
+                {bushland.reportedSightings.slice(0, 3).map((sighting) => (
+                  <li
+                    className="rounded-lg bg-muted p-2.5"
+                    key={`${sighting.date}-${sighting.species}`}
+                  >
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(`${sighting.date}T00:00:00`).toLocaleDateString(
+                        "en-AU",
+                        { day: "numeric", month: "short", year: "numeric" },
+                      )}
+                    </p>
+                    <p className="mt-1 text-[11px] font-semibold leading-tight text-foreground">
+                      {sighting.species} reported
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {sighting.count}{" "}
+                      {sighting.count === 1 ? "report" : "reports"}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                No weed sightings have been reported here yet.
+              </p>
+            )}
+          </section>
           {bushland.distanceMetres !== undefined ? (
             <p className="mt-2 text-xs font-semibold text-[#234D3B]">
               {formatBushlandDistance(bushland.distanceMetres)}
@@ -429,6 +474,7 @@ export default function BushlandMap({
   onLocationChange,
   onLocationStatusChange,
 }: BushlandMapProps) {
+  const queryClient = useQueryClient();
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null);
   const [selectedBushland, setSelectedBushland] =
     useState<BushlandProperties | null>(null);
@@ -438,6 +484,38 @@ export default function BushlandMap({
     useState<GeolocationStatus>("idle");
   const { data } = useEvents();
   const events = useMemo(() => data?.events ?? [], [data?.events]);
+
+  useEffect(() => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl || typeof window === "undefined") {
+      return;
+    }
+
+    const source = new EventSource(`${backendUrl}/weeds/stream/`);
+    source.onmessage = (message) => {
+      const update = JSON.parse(message.data) as {
+        bushland_id: number | null;
+        sighting: NonNullable<BushlandProperties["reportedSightings"]>[number];
+      };
+      queryClient.invalidateQueries({ queryKey: ["bushlands"] });
+      if (update.bushland_id === null) {
+        return;
+      }
+      setSelectedBushland((current) =>
+        current?.objectid === update.bushland_id
+          ? {
+              ...current,
+              reportedSightings: [
+                update.sighting,
+                ...(current.reportedSightings ?? []),
+              ].slice(0, 3),
+            }
+          : current,
+      );
+    };
+
+    return () => source.close();
+  }, [queryClient]);
 
   useEffect(() => {
     if (!nearestBushland) {
