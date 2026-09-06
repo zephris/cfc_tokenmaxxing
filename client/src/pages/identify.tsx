@@ -149,7 +149,9 @@ export default function IdentifyPage() {
         latitude: details.latitude,
         longitude: details.longitude,
         notes: details.notes,
-        confirmedSpecies: confirmedOutcome ? subjectLabelFor(confirmedOutcome) : "",
+        confirmedSpecies: confirmedOutcome
+          ? subjectLabelFor(confirmedOutcome)
+          : "",
         topScientificName:
           confirmedOutcome?.kind === "candidate"
             ? confirmedOutcome.candidate.scientific_name
@@ -224,7 +226,8 @@ export default function IdentifyPage() {
             />
             {reportMutation.isError ? (
               <p role="alert" className="text-sm text-destructive">
-                We couldn't submit this report. Check your connection and try again.
+                We couldn't submit this report. Check your connection and try
+                again.
               </p>
             ) : null}
           </>

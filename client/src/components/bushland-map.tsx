@@ -362,7 +362,7 @@ function MapOverlay({
         <EventPreviewSheet event={event} onClose={onClose} />
       ) : bushland ? (
         <article
-          className="pointer-events-auto relative max-h-[70vh] animate-in slide-in-from-right-8 fade-in overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 text-card-foreground shadow-lg duration-300 md:max-w-[380px]"
+          className="pointer-events-auto relative max-h-[70vh] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 text-card-foreground shadow-lg duration-300 animate-in fade-in slide-in-from-right-8 md:max-w-[380px]"
           key={bushland.objectid}
         >
           <CloseButton onClose={onClose} />
@@ -415,7 +415,8 @@ function MapOverlay({
                       {sighting.species} reported
                     </p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {sighting.count} {sighting.count === 1 ? "report" : "reports"}
+                      {sighting.count}{" "}
+                      {sighting.count === 1 ? "report" : "reports"}
                     </p>
                   </li>
                 ))}

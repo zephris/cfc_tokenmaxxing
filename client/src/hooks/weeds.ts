@@ -36,7 +36,11 @@ export interface ReportSightingResponse {
 
 export const useReportSighting = (
   args?: Omit<
-    UseMutationOptions<ReportSightingResponse, unknown, ReportSightingVariables>,
+    UseMutationOptions<
+      ReportSightingResponse,
+      unknown,
+      ReportSightingVariables
+    >,
     "mutationFn"
   >,
 ) => {
