@@ -238,13 +238,11 @@ export default function IdentifyPage() {
             <div>
               <p className="flex items-center gap-2 font-medium text-primary">
                 <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Demo report created
+                Report submitted
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                This demonstration report is stored only for the current session
-                and has not been submitted to an official reporting service.
-                Persisting real sightings depends on the backend WeedScan
-                integration (issue #9).
+                Your sighting has been recorded and can now appear in the
+                bushland's recent sightings.
               </p>
             </div>
 
